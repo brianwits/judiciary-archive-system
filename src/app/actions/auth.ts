@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { actionError } from "@/contracts/result";
+import { actionError, actionOk } from "@/contracts/result";
 import { mockSignIn, mockSignOut } from "@/lib/auth";
 import { isMockDataEnabled } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
@@ -15,7 +15,7 @@ export async function signIn(formData: FormData) {
     if (result.error) {
       return actionError("UNAUTHORIZED", result.error);
     }
-    redirect("/");
+    return actionOk();
   }
 
   const supabase = await createClient();
@@ -25,7 +25,7 @@ export async function signIn(formData: FormData) {
     return actionError("UNAUTHORIZED", error.message);
   }
 
-  redirect("/");
+  return actionOk();
 }
 
 export async function signOut() {

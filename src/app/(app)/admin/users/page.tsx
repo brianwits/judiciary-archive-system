@@ -1,9 +1,10 @@
 import { listProfiles } from "@/app/actions/users";
 import { UsersTable } from "@/components/admin/users-table";
+import { UsersManagementTable } from "@/components/users/users-management-table";
+import { isMockDataEnabled } from "@/lib/config";
+import { getUsers } from "@/lib/data";
 
 export default async function AdminUsersPage() {
-  const profiles = await listProfiles();
-
   return (
     <div className="space-y-6">
       <div>
@@ -12,7 +13,11 @@ export default async function AdminUsersPage() {
           Assign roles for archive access. New users default to read-only.
         </p>
       </div>
-      <UsersTable profiles={profiles} />
+      {isMockDataEnabled() ? (
+        <UsersManagementTable users={await getUsers()} />
+      ) : (
+        <UsersTable profiles={await listProfiles()} />
+      )}
     </div>
   );
 }

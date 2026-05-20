@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Scale } from "lucide-react";
 import { signIn } from "@/app/actions/auth";
 import { MOCK_USERS } from "@/data/seed/users";
@@ -25,8 +26,10 @@ import {
 } from "@/components/ui/select";
 
 const USE_MOCK = isMockDataEnabled();
+const COPYRIGHT_YEAR = 2026;
 
 export default function LoginPage() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [email, setEmail] = useState(MOCK_USERS[0]?.email ?? "");
@@ -39,7 +42,10 @@ export default function LoginPage() {
       const result = await signIn(formData);
       if (result && !result.ok) {
         setError(result.error.message);
+        return;
       }
+      router.replace("/");
+      router.refresh();
     } catch {
       setError("Unable to sign in. Please try again.");
     } finally {
@@ -78,7 +84,7 @@ export default function LoginPage() {
           </p>
         </div>
         <p className="text-xs text-sidebar-foreground/60">
-          © {new Date().getFullYear()} Judiciary Archive System
+          © {COPYRIGHT_YEAR} Judiciary Archive System
         </p>
       </div>
 

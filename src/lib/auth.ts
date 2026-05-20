@@ -46,6 +46,8 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
     id: profile.id,
     fullName: profile.full_name ?? user.email ?? "User",
     email: user.email ?? "",
+    pjNumber: profile.pj_number ?? null,
+    department: profile.department ?? null,
     role,
     isActive: true,
     createdAt: profile.created_at,

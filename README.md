@@ -148,7 +148,7 @@ supabase/migrations/
 
 | Name | Role | Email |
 |------|------|-------|
-| John Kamau | Admin | john.kamau@courts.go.ke |
+| Brian Mugendi | Admin | brian.mugendi@courts.go.ke |
 | Mary Wanjiku | ICT Officer | mary.wanjiku@courts.go.ke |
 | Peter Ochieng | Registry Clerk | peter.ochieng@courts.go.ke |
 | Grace Akinyi | Archivist | grace.akinyi@courts.go.ke |
