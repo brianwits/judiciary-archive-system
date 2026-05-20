@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Bell, ChevronDown, Menu, Moon, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useTransition } from "react";
 import { signOut } from "@/app/actions/auth";
 import { MAIN_NAV } from "@/config/navigation";
 import { cn } from "@/lib/utils";
@@ -42,9 +43,16 @@ function getInitials(name: string) {
 
 export function AppTopbar({ profile }: AppTopbarProps) {
   const pathname = usePathname();
+  const [isSigningOut, startSignOut] = useTransition();
   const visibleNav = MAIN_NAV.filter(
     (item) => !item.permission || hasPermission(profile.role, item.permission),
   );
+
+  function handleSignOut() {
+    startSignOut(async () => {
+      await signOut();
+    });
+  }
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-sidebar-border bg-primary px-4 text-primary-foreground">
@@ -134,16 +142,16 @@ export function AppTopbar({ profile }: AppTopbarProps) {
               <div className="text-xs font-normal text-muted-foreground">{profile.email}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Link href="/settings">Settings</Link>
+            <DropdownMenuItem render={<Link href="/settings" />}>
+              Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <form action={signOut}>
-                <button type="submit" className="w-full text-left">
-                  Sign out
-                </button>
-              </form>
+            <DropdownMenuItem
+              disabled={isSigningOut}
+              onClick={handleSignOut}
+              render={<button type="button" />}
+            >
+              {isSigningOut ? "Signing out..." : "Sign out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
