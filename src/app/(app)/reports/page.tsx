@@ -6,10 +6,10 @@ export default async function ReportsPage() {
   const data = await getReportData();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         title="Reports & Analytics"
-        subtitle="Archive performance, movements, and scanning metrics"
+        subtitle="Judiciary archive performance, movement control, and digitization trends"
       />
       <ReportCharts data={data} />
     </div>

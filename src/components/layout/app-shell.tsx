@@ -8,7 +8,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   if (!profile) redirect("/login");
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
       <AppSidebar role={profile.role} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppTopbar profile={profile} />

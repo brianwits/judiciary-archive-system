@@ -51,25 +51,25 @@
 }
 
 :root {
-  --background: #f5f4ef;
-  --foreground: #1a1a1a;
+  --background: #f7f6f0;
+  --foreground: #171a17;
   --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card-foreground: #171a17;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
+  --popover-foreground: #171a17;
   --primary: #013220;
   --primary-foreground: #f5f4ef;
   --secondary: #014d3a;
   --secondary-foreground: #f5f4ef;
-  --muted: #e8e6df;
-  --muted-foreground: #5c5c5c;
+  --muted: #ebe8df;
+  --muted-foreground: #5f655f;
   --accent: #c9a227;
   --accent-foreground: #013220;
   --destructive: #b91c1c;
   --success: #047857;
   --warning: #b45309;
-  --border: #d9d9d9;
-  --input: #d9d9d9;
+  --border: #d8d5ca;
+  --input: #d8d5ca;
   --ring: #014d3a;
   --chart-1: #013220;
   --chart-2: #014d3a;
@@ -88,24 +88,31 @@
 }
 
 .dark {
-  --background: #0a1f16;
-  --foreground: #f5f4ef;
-  --card: #013220;
+  --background: #071a12;
+  --foreground: #f6f3ea;
+  --card: #0c281c;
   --card-foreground: #f5f4ef;
-  --popover: #013220;
+  --popover: #0c281c;
   --popover-foreground: #f5f4ef;
   --primary: #c9a227;
   --primary-foreground: #013220;
   --secondary: #014d3a;
   --secondary-foreground: #f5f4ef;
-  --muted: #014d3a;
-  --muted-foreground: #a8b5af;
+  --muted: #123829;
+  --muted-foreground: #b8c2bc;
   --accent: #c9a227;
   --accent-foreground: #013220;
   --destructive: #ef4444;
+  --success: #34d399;
+  --warning: #fbbf24;
   --border: #014d3a;
   --input: #014d3a;
   --ring: #c9a227;
+  --chart-1: #c9a227;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #5eead4;
+  --chart-5: #f87171;
   --sidebar: #012818;
   --sidebar-foreground: #f5f4ef;
   --sidebar-primary: #c9a227;
@@ -120,10 +127,43 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
+  *::selection {
+    @apply bg-accent text-accent-foreground;
   }
   html {
-    @apply font-sans;
+    @apply h-full scroll-smooth font-sans;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+  body {
+    @apply min-h-full bg-background text-base leading-6 text-foreground;
+    font-synthesis-weight: none;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-balance font-semibold leading-tight text-foreground;
+  }
+  p {
+    @apply text-pretty;
+  }
+  a {
+    @apply underline-offset-4;
+  }
+  :focus-visible {
+    @apply outline-none ring-3 ring-ring/35;
+  }
+  ::-webkit-scrollbar {
+    @apply size-3;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full border-2 border-background bg-muted-foreground/30;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/45;
   }
 }

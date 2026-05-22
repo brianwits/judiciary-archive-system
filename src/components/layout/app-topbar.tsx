@@ -55,7 +55,7 @@ export function AppTopbar({ profile }: AppTopbarProps) {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-sidebar-border bg-primary px-4 text-primary-foreground">
+    <header className="flex h-15 shrink-0 items-center gap-4 border-b border-sidebar-border/80 bg-primary px-4 text-primary-foreground shadow-sm">
       <Sheet>
         <SheetTrigger render={<Button variant="ghost" size="icon" className="md:hidden text-primary-foreground hover:bg-white/10" />}>
           <Menu className="size-5" />
@@ -99,7 +99,7 @@ export function AppTopbar({ profile }: AppTopbarProps) {
           <Input
             name="q"
             placeholder="Search files, cases, or registry numbers..."
-            className="border-0 bg-white/10 pl-9 text-primary-foreground placeholder:text-primary-foreground/50 focus-visible:ring-accent"
+            className="border-white/10 bg-white/10 pl-9 text-primary-foreground shadow-none placeholder:text-primary-foreground/55 hover:bg-white/15 focus-visible:border-accent focus-visible:ring-accent/45"
           />
         </div>
       </form>
