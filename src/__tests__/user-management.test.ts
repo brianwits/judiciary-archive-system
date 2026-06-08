@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canManageUsers, isAdmin } from "@/types/roles";
+import { canManageUsers } from "@/types/roles";
 import type { UserRole } from "@/types/roles";
 
 // ---------------------------------------------------------------------------

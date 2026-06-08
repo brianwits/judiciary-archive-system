@@ -1,26 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function setMockSession(
-  page: import("@playwright/test").Page,
-  userId: string,
-) {
-  await page.context().addCookies([
-    {
-      name: "mock_session_user_id",
-      value: userId,
-      domain: "127.0.0.1",
-      path: "/",
-      httpOnly: true,
-      sameSite: "Lax",
-    },
-  ]);
-}
-
-const ADMIN_ID = "user-brian";
 const DEMO_PASSWORD = "demo1234";
 
 // ---------------------------------------------------------------------------

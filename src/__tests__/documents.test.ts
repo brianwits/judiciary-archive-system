@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canEditCases, isAdmin, hasPermission } from "@/types/roles";
+import { canEditCases, isAdmin } from "@/types/roles";
 import type { UserRole } from "@/types/roles";
 
 // ---------------------------------------------------------------------------
@@ -12,7 +12,6 @@ const ALLOWED_DOCUMENT_TYPES = [
   "image/png",
   "image/webp",
 ] as const;
-type AllowedMime = (typeof ALLOWED_DOCUMENT_TYPES)[number];
 
 // ---------------------------------------------------------------------------
 // Test helpers – replicate the Server Action logic patterns without Next.js

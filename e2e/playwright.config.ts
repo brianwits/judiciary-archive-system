@@ -1,7 +1,4 @@
 import { defineConfig, devices } from "@playwright/test";
-import path from "path";
-
-const projectRoot = path.resolve(__dirname, "..");
 
 export default defineConfig({
   testDir: ".",

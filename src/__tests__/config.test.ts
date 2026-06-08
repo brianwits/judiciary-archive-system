@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 // We test isMockDataEnabled indirectly by mocking process.env
 function createMockChecker() {
