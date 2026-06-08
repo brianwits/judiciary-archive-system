@@ -39,6 +39,15 @@ function isMissingDbRpcError(error: { message?: string; code?: string }) {
   );
 }
 
+/** Max rows when loading all documents/audit logs for a single case detail view. */
+const CASE_SCOPED_FETCH_LIMIT = 500;
+
+/** Escape user input for PostgREST `.or()` ilike patterns (commas break OR syntax). */
+function postgrestIlikePattern(value: string): string {
+  const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '""');
+  return `"${`%${escaped}%`}"`;
+}
+
 function buildArchiveCodesPath(
   byId: Map<string, Pick<ArchiveLocationRow, "parent_id" | "code">>,
   leafId: string | null,
@@ -185,16 +194,25 @@ export async function fetchCasesPageFromSupabase(
 
   if (filters?.q ?? filters?.query) {
     const q = filters.q ?? filters.query ?? "";
-    const { data, error } = await supabase.rpc("search_cases", {
-      search_query: q,
-      result_limit: pageSize,
-      result_offset: from,
-    });
+    const [{ data, error }, { data: totalData, error: countError }] = await Promise.all([
+      supabase.rpc("search_cases", {
+        search_query: q,
+        result_limit: pageSize,
+        result_offset: from,
+      }),
+      supabase.rpc("search_cases_count", { search_query: q }),
+    ]);
     if (error) throw new Error(error.message);
     const items = (data ?? []).map(caseRowToDto);
+    const total =
+      countError || totalData === null || totalData === undefined
+        ? items.length < pageSize
+          ? from + items.length
+          : from + pageSize + 1
+        : Number(totalData);
     return {
       items,
-      total: items.length < pageSize ? from + items.length : from + pageSize + 1,
+      total,
       page,
       pageSize,
     };
@@ -221,8 +239,11 @@ export async function fetchCasesPageFromSupabase(
   }
 
   if (filters?.partyName) {
-    const party = filters.partyName;
-    query = query.or(`plaintiff.ilike.%${party}%,defendant.ilike.%${party}%`);
+    const party = filters.partyName.trim();
+    if (party) {
+      const pattern = postgrestIlikePattern(party);
+      query = query.or(`plaintiff.ilike.${pattern},defendant.ilike.${pattern}`);
+    }
   }
 
   const { data, error, count } = await query.range(from, to);
@@ -248,6 +269,54 @@ export async function fetchMovementsFromSupabase(
     .order("created_at", { ascending: false })
     .range(from, to);
 
+  if (error) throw new Error(error.message);
+
+  const names = await profileNameMap((data ?? []).map((row) => row.checked_out_by ?? ""), supabase);
+
+  return (data ?? []).map((row) =>
+    movementRowToDto({
+      ...row,
+      profiles: row.checked_out_by
+        ? { full_name: names.get(row.checked_out_by) ?? "Unknown" }
+        : null,
+    }),
+  );
+}
+
+export async function fetchMovementsSearchFromSupabase(
+  query: string,
+  listQuery?: Partial<ListQuery>,
+  client?: SupabaseReadClient,
+): Promise<FileMovement[]> {
+  const supabase = client ?? await createClient();
+  const { from, to } = pageRange(listQuery);
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const pattern = `%${trimmed}%`;
+
+  const { data: matchingCases } = await supabase
+    .from("cases")
+    .select("id")
+    .ilike("case_number", pattern);
+
+  const caseIds = (matchingCases ?? []).map((row) => row.id);
+
+  let movementQuery = supabase
+    .from("file_movements")
+    .select("*, cases(case_number, plaintiff, defendant, title)")
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (caseIds.length > 0) {
+    movementQuery = movementQuery.or(
+      `destination_office.ilike.${postgrestIlikePattern(trimmed)},case_id.in.(${caseIds.join(",")})`,
+    );
+  } else {
+    movementQuery = movementQuery.ilike("destination_office", pattern);
+  }
+
+  const { data, error } = await movementQuery;
   if (error) throw new Error(error.message);
 
   const names = await profileNameMap((data ?? []).map((row) => row.checked_out_by ?? ""), supabase);
@@ -371,12 +440,14 @@ export async function fetchAuditLogsForCaseFromSupabase(
 ): Promise<AuditLog[]> {
   const supabase = client ?? await createClient();
   const { from, pageSize } = pageRange(listQuery);
+  const resultLimit = listQuery ? pageSize : CASE_SCOPED_FETCH_LIMIT;
+  const resultOffset = listQuery ? from : 0;
 
   const { data, error } = await supabase.rpc("list_audit_logs_for_case", {
     p_case_id: caseId,
     p_case_number: caseNumber,
-    result_limit: pageSize,
-    result_offset: from,
+    result_limit: resultLimit,
+    result_offset: resultOffset,
   });
 
   if (error) {
@@ -397,7 +468,7 @@ export async function fetchAuditLogsForCaseFromSupabase(
         .select("*")
         .or(filters.join(","))
         .order("created_at", { ascending: false })
-        .range(from, from + pageSize - 1);
+        .range(resultOffset, resultOffset + resultLimit - 1);
 
       if (queryError) throw new Error(queryError.message);
 
@@ -505,11 +576,12 @@ export async function fetchDocumentsFromSupabase(
   client?: SupabaseReadClient,
 ): Promise<CaseDocument[]> {
   const supabase = client ?? await createClient();
+  const rowLimit = caseId ? CASE_SCOPED_FETCH_LIMIT : DEFAULT_PAGE_SIZE;
   let query = supabase
     .from("documents")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(DEFAULT_PAGE_SIZE);
+    .limit(rowLimit);
 
   if (caseId) query = query.eq("case_id", caseId);
 
@@ -597,6 +669,43 @@ export async function fetchDocumentsForCasesFromSupabase(
   }
 
   return docMap;
+}
+
+/**
+ * Batch-load accurate document counts for multiple case IDs.
+ */
+export async function fetchDocumentCountsForCasesFromSupabase(
+  caseIds: string[],
+  client?: SupabaseReadClient,
+): Promise<Map<string, number>> {
+  if (caseIds.length === 0) return new Map();
+
+  const supabase = client ?? await createClient();
+
+  const { data, error } = await supabase.rpc("count_documents_for_cases", {
+    p_case_ids: caseIds,
+  });
+
+  if (error) {
+    if (isMissingDbRpcError(error)) {
+      const result = new Map<string, number>();
+      for (const caseId of caseIds) {
+        const docs = await fetchDocumentsFromSupabase(caseId, supabase);
+        result.set(caseId, docs.length);
+      }
+      return result;
+    }
+    throw new Error(error.message);
+  }
+
+  const counts = new Map<string, number>();
+  for (const caseId of caseIds) {
+    counts.set(caseId, 0);
+  }
+  for (const row of data ?? []) {
+    counts.set(row.case_id, Number(row.document_count));
+  }
+  return counts;
 }
 
 /** Parse the JSON result from fetch_dashboard_data RPC into typed DashboardData. */

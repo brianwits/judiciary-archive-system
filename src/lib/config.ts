@@ -23,7 +23,7 @@ export function assertSupabaseConfigured(): void {
 
   if (missing.length > 0) {
     throw new Error(
-      `Supabase mode requires: ${missing.join(", ")}. Set NEXT_PUBLIC_USE_MOCK_DATA=true for demo mode.`,
+      `Supabase mode requires: ${missing.join(", ")}. Unset NEXT_PUBLIC_USE_MOCK_DATA or set it to "false" only when Supabase is configured.`,
     );
   }
 }

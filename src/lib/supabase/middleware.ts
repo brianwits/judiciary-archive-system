@@ -1,17 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { mapDbRoleToAppRole } from "@/lib/roles/map-db-role";
-import { isMockDataEnabled } from "@/lib/config";
+import { assertSupabaseConfigured, isMockDataEnabled } from "@/lib/config";
 import { permissionRequiredForAppPath } from "@/config/navigation-permissions";
 import { mockStore } from "@/lib/data/mock-store";
+import { MOCK_SESSION_COOKIE } from "@/lib/auth";
 import { hasPermission } from "@/types/roles";
-import type { Database } from "@/types/database";
+import type { Database, ProfileRow } from "@/types/database";
 import {
   ensureProfileRowForCurrentUser,
   fetchProfileRowForUser,
 } from "@/lib/supabase/fetch-profile";
-
-const MOCK_SESSION_COOKIE = "mock_session_user_id";
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -30,6 +29,15 @@ export async function updateSession(request: NextRequest) {
   if (isMockDataEnabled()) {
     const userId = request.cookies.get(MOCK_SESSION_COOKIE)?.value;
     const profile = userId ? mockStore.getUserById(userId) : null;
+
+    if (profile && !profile.isActive) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "inactive_account");
+      const response = NextResponse.redirect(url);
+      response.cookies.delete(MOCK_SESSION_COOKIE);
+      return response;
+    }
 
     if (!profile && !isLogin) {
       const url = request.nextUrl.clone();
@@ -54,6 +62,8 @@ export async function updateSession(request: NextRequest) {
 
     return NextResponse.next({ request });
   }
+
+  assertSupabaseConfigured();
 
   let supabaseResponse = NextResponse.next({ request });
 
@@ -97,11 +107,23 @@ export async function updateSession(request: NextRequest) {
     return redirectUpdatingSession(url);
   }
 
-  let profileRow: Awaited<ReturnType<typeof fetchProfileRowForUser>> | null = null;
+  let profileRow: ProfileRow | null = null;
   if (user) {
-    profileRow = await fetchProfileRowForUser(supabase, user.id);
-    if (!profileRow) {
-      profileRow = await ensureProfileRowForCurrentUser(supabase);
+    const profileResult = await fetchProfileRowForUser(supabase, user.id);
+    if (profileResult.status === "error") {
+      console.error("Profile fetch failed in middleware:", profileResult.error.message);
+      return supabaseResponse;
+    }
+    if (profileResult.status === "ok") {
+      profileRow = profileResult.profile;
+    } else {
+      const ensured = await ensureProfileRowForCurrentUser(supabase);
+      if (ensured.status === "ok") {
+        profileRow = ensured.profile;
+      } else if (ensured.status === "error") {
+        console.error("Profile ensure failed in middleware:", ensured.error.message);
+        return supabaseResponse;
+      }
     }
   }
 

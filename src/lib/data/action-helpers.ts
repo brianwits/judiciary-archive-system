@@ -12,7 +12,7 @@
  * This module extracts steps 4–5 into reusable helpers so each action body is ~40 % shorter.
  */
 import { revalidatePath, revalidateTag } from "next/cache";
-import { CACHE_TAGS, caseTag } from "@/lib/data/cache-tags";
+import { CACHE_TAGS } from "@/lib/data/cache-tags";
 import { insertAuditLog } from "@/lib/data/supabase-queries";
 import { isMockDataEnabled } from "@/lib/config";
 import { mockStore } from "@/lib/data/mock-store";
@@ -71,11 +71,10 @@ export function revalidateCaseMutation(caseId?: string): void {
   revalidateTag(CACHE_TAGS.dashboard, "max");
   revalidateTag(CACHE_TAGS.reports, "max");
   revalidateTag(CACHE_TAGS.audit, "max");
-  if (caseId) revalidateTag(caseTag(caseId), "max");
 }
 
 /** Revalidate everything affected by check-out / check-in. */
-export function revalidateTrackingMutation(caseId?: string): void {
+export function revalidateTrackingMutation(): void {
   revalidatePath("/tracking");
   revalidatePath("/");
   revalidateTag(CACHE_TAGS.movements, "max");
@@ -83,7 +82,6 @@ export function revalidateTrackingMutation(caseId?: string): void {
   revalidateTag(CACHE_TAGS.reports, "max");
   revalidateTag(CACHE_TAGS.cases, "max");
   revalidateTag(CACHE_TAGS.audit, "max");
-  if (caseId) revalidateTag(caseTag(caseId), "max");
 }
 
 /** Revalidate everything affected by registry ops. */
@@ -101,13 +99,11 @@ export function revalidateDocumentMutation(caseId: string): void {
   revalidateTag(CACHE_TAGS.dashboard, "max");
   revalidateTag(CACHE_TAGS.reports, "max");
   revalidateTag(CACHE_TAGS.audit, "max");
-  revalidateTag(caseTag(caseId), "max");
 }
 
 /** Revalidate everything affected by user profile changes. */
 export function revalidateUserMutation(): void {
   revalidatePath("/users");
-  revalidatePath("/admin/users");
   revalidateTag(CACHE_TAGS.users, "max");
   revalidateTag(CACHE_TAGS.dashboard, "max");
 }

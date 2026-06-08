@@ -8,11 +8,3 @@ export const CACHE_TAGS = {
   reports: "reports",
   users: "users",
 } as const;
-
-export function caseTag(caseId: string) {
-  return `case:${caseId}`;
-}
-
-export function archiveLocationTag(locationId: string) {
-  return `archive-location:${locationId}`;
-}

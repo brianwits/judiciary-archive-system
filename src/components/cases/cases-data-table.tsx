@@ -31,8 +31,11 @@ export function CasesDataTable({
   onToggleOne,
   onToggleAll,
 }: CasesDataTableProps) {
-  const allSelected = cases.length > 0 && selectedIds.length === cases.length;
-  const someSelected = selectedIds.length > 0 && !allSelected;
+  const pageIds = cases.map((c) => c.id);
+  const allSelected =
+    pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const someSelected =
+    pageIds.some((id) => selectedIds.includes(id)) && !allSelected;
 
   if (cases.length === 0) {
     return (

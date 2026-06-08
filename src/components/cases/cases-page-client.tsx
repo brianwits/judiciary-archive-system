@@ -36,7 +36,13 @@ export function CasesPageClient({ cases, docCountByCaseId, role }: CasesPageClie
   }
 
   function toggleAll(checked: boolean) {
-    setSelectedIds(checked ? cases.map((item) => item.id) : []);
+    const pageIds = cases.map((item) => item.id);
+    const pageIdSet = new Set(pageIds);
+    setSelectedIds((current) =>
+      checked
+        ? [...new Set([...current, ...pageIds])]
+        : current.filter((id) => !pageIdSet.has(id)),
+    );
   }
 
   async function handleStatusChange(status: CaseFile["status"]) {

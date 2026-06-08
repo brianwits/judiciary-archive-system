@@ -1,5 +1,15 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { Database, ProfileRow } from "@/types/database";
+
+export type ProfileFetchResult =
+  | { status: "ok"; profile: ProfileRow }
+  | { status: "missing" }
+  | { status: "error"; error: PostgrestError };
+
+export type ProfileEnsureResult =
+  | { status: "ok"; profile: ProfileRow }
+  | { status: "missing" }
+  | { status: "error"; error: PostgrestError };
 
 /**
  * Load the app profile row for an auth user — use maybeSingle per Supabase SSR guidance
@@ -8,22 +18,24 @@ import type { Database, ProfileRow } from "@/types/database";
 export async function fetchProfileRowForUser(
   supabase: SupabaseClient<Database>,
   userId: string,
-): Promise<ProfileRow | null> {
+): Promise<ProfileFetchResult> {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", userId)
     .maybeSingle();
 
-  if (error || !data) return null;
-  return data;
+  if (error) return { status: "error", error };
+  if (!data) return { status: "missing" };
+  return { status: "ok", profile: data };
 }
 
 export async function ensureProfileRowForCurrentUser(
   supabase: SupabaseClient<Database>,
-): Promise<ProfileRow | null> {
+): Promise<ProfileEnsureResult> {
   const { data, error } = await supabase.rpc("ensure_profile_for_current_user");
 
-  if (error || !data) return null;
-  return data;
+  if (error) return { status: "error", error };
+  if (!data) return { status: "missing" };
+  return { status: "ok", profile: data };
 }

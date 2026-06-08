@@ -42,13 +42,13 @@ test.describe("User Management – Page Load", () => {
     ).toBeVisible();
   });
 
-  test("displays all 6 users in the table", async ({ page }) => {
+  test("displays all 7 users in the table", async ({ page }) => {
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
 
     const editButtons = page.getByRole("button", { name: /^Edit / });
-    await expect(editButtons).toHaveCount(6);
+    await expect(editButtons).toHaveCount(7);
   });
 
   test("shows expected user data in table rows", async ({ page }) => {
@@ -89,11 +89,11 @@ test.describe("User Management – Page Load", () => {
     // Base UI Select renders raw enum values (not labels) in the trigger
     // e.g., "admin", "registry_clerk", "archivist"
     const roleTriggers = page.locator('[data-slot="select-trigger"]');
-    await expect(roleTriggers).toHaveCount(6);
+    await expect(roleTriggers).toHaveCount(7);
 
     // Check that each trigger contains a select-value with the raw role
     const values = page.locator('[data-slot="select-value"]');
-    await expect(values).toHaveCount(6);
+    await expect(values).toHaveCount(7);
     await expect(values.nth(0)).toContainText("admin");
     await expect(values.nth(2)).toContainText("registry_clerk");
     await expect(values.nth(3)).toContainText("archivist");
@@ -104,7 +104,7 @@ test.describe("User Management – Page Load", () => {
     await page.goto("/users");
     await page.waitForTimeout(500);
 
-    // All users should have "Active" badges
+    // All users should have "Active" badges (inactive user has no badge)
     const activeBadges = page.getByText("Active");
     const count = await activeBadges.count();
     expect(count).toBeGreaterThanOrEqual(6);
@@ -126,12 +126,12 @@ test.describe("User Management – Page Load", () => {
     await page.goto("/users");
     await page.waitForTimeout(500);
 
-    // With 6 users and PAGE_SIZE=10, there should be 1 page, so
+    // With 7 users and PAGE_SIZE=10, there should be 1 page, so
     // pagination controls should not show
     const prevButton = page.getByRole("button", { name: "Previous" });
     const nextButton = page.getByRole("button", { name: "Next" });
 
-    // 6 users fit on one page, so no pagination
+    // 7 users fit on one page, so no pagination
     await expect(prevButton).toHaveCount(0);
     await expect(nextButton).toHaveCount(0);
   });
@@ -147,8 +147,8 @@ test.describe("Navigation", () => {
     await page.goto("/settings");
 
     await expect(
-      page.getByText("Account and system preferences"),
-    ).toBeVisible();
+      page.getByText("Account, appearance, and system preferences"),
+    ).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("Profile").first()).toBeVisible();
     await expect(page.getByText("System").first()).toBeVisible();
     await expect(

@@ -18,14 +18,16 @@ import type { UserProfile } from "@/types/user";
 
 export type SessionProfile = UserProfile;
 
-const MOCK_SESSION_COOKIE = "mock_session_user_id";
+export const MOCK_SESSION_COOKIE = "mock_session_user_id";
 
 export const getSessionProfile = cache(async (): Promise<SessionProfile | null> => {
   if (isMockDataEnabled()) {
     const cookieStore = await cookies();
     const userId = cookieStore.get(MOCK_SESSION_COOKIE)?.value;
     if (!userId) return null;
-    return mockStore.getUserById(userId) ?? null;
+    const profile = mockStore.getUserById(userId);
+    if (!profile || !profile.isActive) return null;
+    return profile;
   }
 
   const supabase = await createClient();
@@ -35,8 +37,14 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
 
   if (!user) return null;
 
-  const profile = await fetchProfileRowForUser(supabase, user.id);
-  if (!profile) return null;
+  const profileResult = await fetchProfileRowForUser(supabase, user.id);
+  if (profileResult.status === "error") {
+    throw new Error(profileResult.error.message);
+  }
+  if (profileResult.status === "missing") return null;
+
+  const profile = profileResult.profile;
+  if (!profile.is_active) return null;
 
   const role = mapDbRoleToAppRole(profile.role as string);
 
@@ -58,6 +66,9 @@ export async function mockSignIn(email: string, password: string): Promise<{ err
   const user = MOCK_USERS.find((u) => u.email === email);
   if (!user || password !== DEMO_PASSWORD) {
     return { error: "Invalid email or password." };
+  }
+  if (!user.isActive) {
+    return { error: "This account has been deactivated." };
   }
   const cookieStore = await cookies();
   cookieStore.set(MOCK_SESSION_COOKIE, user.id, {

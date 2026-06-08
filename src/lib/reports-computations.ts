@@ -32,8 +32,6 @@ export function formatCompact(value: number) {
   return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
-export type ReportDerived = ReturnType<typeof computeDerived>;
-
 /** Pre-computed values shared by stat cards and chart widgets. */
 export function computeDerived(data: ReportData) {
   const latestArchive = getLastValue(data.archiveGrowth, { month: "N/A", count: 0 });

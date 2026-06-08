@@ -6,11 +6,14 @@ export const AUDIT_ACTIONS = [
   "file_moved",
   "file_archived",
   "document_uploaded",
+  "document_deleted",
   "file_missing",
   "role_changed",
   "file_checked_out",
   "file_checked_in",
   "user_email_updated",
+  "registry_request_created",
+  "registry_request_updated",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

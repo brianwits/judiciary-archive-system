@@ -37,8 +37,15 @@ export async function signIn(formData: FormData) {
     return actionError("UNAUTHORIZED", error.message);
   }
 
-  const profile = await ensureProfileRowForCurrentUser(supabase);
-  if (!profile) {
+  const profileResult = await ensureProfileRowForCurrentUser(supabase);
+  if (profileResult.status === "error") {
+    await supabase.auth.signOut();
+    return actionError(
+      "UNAUTHORIZED",
+      "Unable to verify your staff profile. Try again shortly.",
+    );
+  }
+  if (profileResult.status === "missing") {
     await supabase.auth.signOut();
     return actionError(
       "UNAUTHORIZED",
@@ -46,6 +53,7 @@ export async function signIn(formData: FormData) {
     );
   }
 
+  const profile = profileResult.profile;
   if (!profile.is_active) {
     await supabase.auth.signOut();
     return actionError("UNAUTHORIZED", "This account has been deactivated.");

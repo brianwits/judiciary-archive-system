@@ -9,7 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "@/contracts/queries";
 import { getSessionProfile } from "@/lib/auth";
-import { getCasesPage, getDocumentsForCases } from "@/lib/data";
+import { getCasesPage, getDocumentCountsForCases } from "@/lib/data";
 import type { CaseFilters as CaseFiltersType, CaseStatus, CaseType } from "@/types/case";
 
 const DynamicCasesPageClient = dynamic(() => import("@/components/cases/cases-page-client").then((m) => ({ default: m.CasesPageClient })));
@@ -45,9 +45,7 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
   const docCountByCaseId: Record<string, number> =
     caseIds.length > 0
       ? Object.fromEntries(
-          Array.from((await getDocumentsForCases(caseIds)).entries()).map(
-            ([id, docs]) => [id, docs.length],
-          ),
+          Array.from((await getDocumentCountsForCases(caseIds)).entries()),
         )
       : {};
 
@@ -69,6 +67,7 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
 
       <Suspense fallback={<TablePanelSkeleton rows={8} />}>
         <DynamicCasesPageClient
+          key={[result.page, params.q, params.caseType, params.year, params.status].join("-")}
           cases={result.items}
           docCountByCaseId={docCountByCaseId}
           role={profile!.role}

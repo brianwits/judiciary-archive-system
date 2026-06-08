@@ -74,6 +74,18 @@ export const MOCK_USERS: UserProfile[] = [
     createdAt: "2024-06-01T08:00:00Z",
     updatedAt: "2026-05-01T10:00:00Z",
   },
+  {
+    id: "user-inactive",
+    fullName: "Former Staff Member",
+    email: "inactive.staff@courts.go.ke",
+    pjNumber: "00000",
+    department: "Archive",
+    role: "archivist",
+    isActive: false,
+    notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES },
+    createdAt: "2023-01-01T08:00:00Z",
+    updatedAt: "2026-01-01T10:00:00Z",
+  },
 ];
 
 export const DEMO_PASSWORD = "demo1234";

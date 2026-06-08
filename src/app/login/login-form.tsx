@@ -3,7 +3,7 @@
 import { Suspense, startTransition, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "@/app/actions/auth";
-import { MOCK_USERS } from "@/data/seed/users";
+import { DEMO_PASSWORD, MOCK_USERS } from "@/data/seed/users";
 import { isMockDataEnabled } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/shared/form-error";
@@ -66,7 +66,7 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [email, setEmail] = useState(USE_MOCK ? (MOCK_USERS[0]?.email ?? "") : "");
-  const [password, setPassword] = useState(USE_MOCK ? "demo1234" : "");
+  const [password, setPassword] = useState(USE_MOCK ? DEMO_PASSWORD : "");
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
@@ -93,7 +93,7 @@ export default function LoginForm() {
     const user = MOCK_USERS.find((u) => u.id === value);
     if (user) {
       setEmail(user.email);
-      setPassword("demo1234");
+      setPassword(DEMO_PASSWORD);
     }
   }
 

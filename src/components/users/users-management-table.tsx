@@ -231,7 +231,7 @@ function SingleEditUserDialog({
           </DialogDescription>
         </DialogHeader>
         {user && (
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form key={user.id} className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor={`fullName-${user.id}`}>Full name</Label>

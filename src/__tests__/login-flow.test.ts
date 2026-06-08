@@ -14,6 +14,7 @@ describe("Mock login flow", () => {
   };
 
   beforeEach(async () => {
+    vi.resetModules();
     mockCookieStore = {
       set: vi.fn(),
       get: vi.fn(),
@@ -55,7 +56,7 @@ describe("Mock login flow", () => {
     const { mockSignIn } = await import("@/lib/auth");
     const validEmail = "brian.mugendi@courts.go.ke";
 
-    const result = await mockSignIn(validEmail, "demo1234");
+    const result = await mockSignIn(validEmail, DEMO_PASSWORD);
 
     expect(result.error).toBeUndefined();
     // Should set mock_session_user_id cookie
@@ -86,6 +87,15 @@ describe("Mock login flow", () => {
     const result = await mockSignIn("unknown@example.com", "demo1234");
 
     expect(result.error).toBe("Invalid email or password.");
+    expect(mockCookieStore.set).not.toHaveBeenCalled();
+  });
+
+  it("mockSignIn rejects inactive accounts", async () => {
+    const { mockSignIn } = await import("@/lib/auth");
+
+    const result = await mockSignIn("inactive.staff@courts.go.ke", DEMO_PASSWORD);
+
+    expect(result.error).toBe("This account has been deactivated.");
     expect(mockCookieStore.set).not.toHaveBeenCalled();
   });
 

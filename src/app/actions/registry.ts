@@ -71,7 +71,7 @@ export async function createRegistryRequest(formData: FormData) {
   await recordAuditLog({
     userId: profile.id,
     userName: profile.fullName,
-    action: "case_created",
+    action: "registry_request_created",
     entityType: "registry_request",
     entityId: requestId,
     description: `Registry request (${requestType}) submitted for ${caseNumber}`,
@@ -130,7 +130,7 @@ export async function updateRegistryRequestStatus(formData: FormData) {
   await recordAuditLog({
     userId: profile.id,
     userName: profile.fullName,
-    action: "case_updated",
+    action: "registry_request_updated",
     entityType: "registry_request",
     entityId: requestId,
     description: `Registry request for ${caseNumberForAudit} marked ${status.replace("_", " ")}`,

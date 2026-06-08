@@ -446,6 +446,12 @@ export type Database = {
         };
         Returns: Database["public"]["Tables"]["cases"]["Row"][];
       };
+      search_cases_count: {
+        Args: {
+          search_query: string;
+        };
+        Returns: number;
+      };
       list_archive_stored_cases: {
         Args: {
           result_limit?: number;
@@ -496,6 +502,15 @@ export type Database = {
           created_at: string;
         }>;
       };
+      count_documents_for_cases: {
+        Args: {
+          p_case_ids: string[];
+        };
+        Returns: Array<{
+          case_id: string;
+          document_count: number;
+        }>;
+      };
     };
     Enums: {
       audit_action:
@@ -506,11 +521,14 @@ export type Database = {
         | "file_moved"
         | "file_archived"
         | "document_uploaded"
+        | "document_deleted"
         | "file_missing"
         | "role_changed"
         | "file_checked_out"
         | "file_checked_in"
-        | "user_email_updated";
+        | "user_email_updated"
+        | "registry_request_created"
+        | "registry_request_updated";
       case_status: "open" | "closed" | "archived" | "missing" | "pending_return";
       court_user_role:
         | "admin"

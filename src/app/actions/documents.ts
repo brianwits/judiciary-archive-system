@@ -142,13 +142,23 @@ export async function deleteDocument(documentId: string, caseId: string) {
   }
 
   if (isMockDataEnabled()) {
-    const deleted = mockStore.deleteDocument(documentId);
-    if (!deleted) return actionError("NOT_FOUND", "Document not found.");
+    const document = mockStore.getDocumentById(documentId);
+    if (!document) return actionError("NOT_FOUND", "Document not found.");
+    mockStore.deleteDocument(documentId);
+    await recordAuditLog({
+      userId: profile.id,
+      userName: profile.fullName,
+      action: "document_deleted",
+      entityType: "document",
+      entityId: documentId,
+      description: `Deleted ${document.title} from case ${caseId}`,
+      metadata: { caseId, title: document.title },
+    });
   } else {
     const supabase = await createClient();
     const { data: document, error: fetchError } = await supabase
       .from("documents")
-      .select("storage_path")
+      .select("storage_path, title")
       .eq("id", documentId)
       .single();
 
@@ -160,6 +170,16 @@ export async function deleteDocument(documentId: string, caseId: string) {
 
     const { error } = await supabase.from("documents").delete().eq("id", documentId);
     if (error) return actionError("BAD_REQUEST", error.message);
+
+    await recordAuditLog({
+      userId: profile.id,
+      userName: profile.fullName,
+      action: "document_deleted",
+      entityType: "document",
+      entityId: documentId,
+      description: `Deleted ${document.title} from case ${caseId}`,
+      metadata: { caseId, title: document.title },
+    });
   }
 
   revalidateDocumentMutation(caseId);

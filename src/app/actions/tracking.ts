@@ -98,7 +98,7 @@ export async function checkoutFile(data: CheckoutInput) {
     user: profile.fullName,
   });
 
-  revalidateTrackingMutation(caseFile.id);
+  revalidateTrackingMutation();
   return actionOk();
 }
 
@@ -108,7 +108,6 @@ export async function checkinFile(movementId: string) {
     return actionError("FORBIDDEN", "You do not have permission to check in files.");
   }
 
-  let caseIdToRevalidate: string | null = null;
   let caseNumber: string = "Case";
 
   if (isMockDataEnabled()) {
@@ -120,7 +119,6 @@ export async function checkinFile(movementId: string) {
     if (!movement) {
       return actionError("NOT_FOUND", "Movement record not found.");
     }
-    caseIdToRevalidate = movement.caseId ?? null;
     caseNumber = movement.caseNumber ?? caseNumber;
 
     await recordAuditLog({
@@ -149,8 +147,6 @@ export async function checkinFile(movementId: string) {
 
     if (fetchError) return actionError("BAD_REQUEST", fetchError.message);
     if (!existing) return actionError("NOT_FOUND", "Movement record not found.");
-    caseIdToRevalidate = existing.case_id;
-
     caseNumber =
       (existing.cases as { case_number: string } | null)?.case_number ?? "Case";
 
@@ -182,6 +178,6 @@ export async function checkinFile(movementId: string) {
     });
   }
 
-  revalidateTrackingMutation(caseIdToRevalidate ?? undefined);
+  revalidateTrackingMutation();
   return actionOk();
 }

@@ -14,11 +14,13 @@ import {
   fetchArchiveStoredCasesFromSupabase,
   fetchDashboardFromSupabase,
   fetchDocumentsForCasesFromSupabase,
+  fetchDocumentCountsForCasesFromSupabase,
   fetchDocumentsFromSupabase,
   fetchLocationByIdFromSupabase,
   fetchLocationChildrenFromSupabase,
   fetchMovementsByCaseFromSupabase,
   fetchMovementsFromSupabase,
+  fetchMovementsSearchFromSupabase,
   fetchRecentMovementsFromSupabase,
   fetchRegistryRequestsFromSupabase,
   fetchRoomSummariesFromSupabase,
@@ -42,10 +44,7 @@ import type { UserRole } from "@/types/roles";
 import { REPORT_DATA } from "@/data/seed/dashboard";
 
 const getCachedDashboardData = unstable_cache(
-  async () => {
-    if (isMockDataEnabled()) return mockStore.getDashboard();
-    return fetchDashboardFromSupabase(createAdminClient());
-  },
+  async () => fetchDashboardFromSupabase(createAdminClient()),
   ["dashboard-data"],
   {
     revalidate: 120,
@@ -60,10 +59,7 @@ const getCachedDashboardData = unstable_cache(
 );
 
 const getCachedRoomSummaries = unstable_cache(
-  async () => {
-    if (isMockDataEnabled()) return mockStore.getRooms();
-    return fetchRoomSummariesFromSupabase(createAdminClient());
-  },
+  async () => fetchRoomSummariesFromSupabase(createAdminClient()),
   ["archive-room-summaries"],
   {
     revalidate: 300,
@@ -72,10 +68,7 @@ const getCachedRoomSummaries = unstable_cache(
 );
 
 const getCachedRecentMovements = unstable_cache(
-  async (limit: number) => {
-    if (isMockDataEnabled()) return mockStore.getRecentMovements(limit);
-    return fetchRecentMovementsFromSupabase(limit, createAdminClient());
-  },
+  async (limit: number) => fetchRecentMovementsFromSupabase(limit, createAdminClient()),
   ["recent-movements"],
   {
     revalidate: 60,
@@ -84,10 +77,7 @@ const getCachedRecentMovements = unstable_cache(
 );
 
 const getCachedUsers = unstable_cache(
-  async () => {
-    if (isMockDataEnabled()) return mockStore.getUsers();
-    return fetchUsersFromSupabase(createAdminClient());
-  },
+  async () => fetchUsersFromSupabase(createAdminClient()),
   ["users-list"],
   {
     revalidate: 300,
@@ -96,10 +86,7 @@ const getCachedUsers = unstable_cache(
 );
 
 const getCachedReportData = unstable_cache(
-  async () => {
-    if (isMockDataEnabled()) return REPORT_DATA;
-    return fetchReportDataFromSupabase(createAdminClient());
-  },
+  async () => fetchReportDataFromSupabase(createAdminClient()),
   ["reports-data"],
   {
     revalidate: 300,
@@ -108,10 +95,7 @@ const getCachedReportData = unstable_cache(
 );
 
 const getCachedTopLevelDocuments = unstable_cache(
-  async () => {
-    if (isMockDataEnabled()) return mockStore.getDocuments();
-    return fetchDocumentsFromSupabase(undefined, createAdminClient());
-  },
+  async () => fetchDocumentsFromSupabase(undefined, createAdminClient()),
   ["documents-index"],
   {
     revalidate: 120,
@@ -120,10 +104,8 @@ const getCachedTopLevelDocuments = unstable_cache(
 );
 
 const getCachedAuditLogs = unstable_cache(
-  async (page: number, pageSize: number, action?: AuditAction) => {
-    if (isMockDataEnabled()) return mockStore.getAuditLogs();
-    return fetchAuditLogsFromSupabase({ page, pageSize }, action ? { action } : undefined, createAdminClient());
-  },
+  async (page: number, pageSize: number, action?: AuditAction) =>
+    fetchAuditLogsFromSupabase({ page, pageSize }, action ? { action } : undefined, createAdminClient()),
   ["audit-logs"],
   {
     revalidate: 60,
@@ -133,14 +115,6 @@ const getCachedAuditLogs = unstable_cache(
 
 const getCachedNavSnapshot = unstable_cache(
   async () => {
-    if (isMockDataEnabled()) {
-      const dashboard = mockStore.getDashboard();
-      return {
-        openCases: dashboard.activeCasesCount,
-        pendingRegistry: dashboard.registryRequestsCount,
-        alerts: dashboard.alerts.slice(0, 5),
-      };
-    }
     const dashboard = await fetchDashboardFromSupabase(createAdminClient());
     return {
       openCases: dashboard.activeCasesCount,
@@ -156,13 +130,8 @@ const getCachedNavSnapshot = unstable_cache(
 );
 
 const getCachedArchiveStoredCases = unstable_cache(
-  async (limit: number, offset: number) => {
-    if (isMockDataEnabled()) {
-      const items = mockStore.getArchiveStoredCases();
-      return { items, total: items.length };
-    }
-    return fetchArchiveStoredCasesFromSupabase({ limit, offset }, createAdminClient());
-  },
+  async (limit: number, offset: number) =>
+    fetchArchiveStoredCasesFromSupabase({ limit, offset }, createAdminClient()),
   ["archive-stored-cases"],
   {
     revalidate: 120,
@@ -171,10 +140,7 @@ const getCachedArchiveStoredCases = unstable_cache(
 );
 
 const getCachedLocationById = unstable_cache(
-  async (id: string) => {
-    if (isMockDataEnabled()) return mockStore.getLocationById(id) ?? null;
-    return fetchLocationByIdFromSupabase(id, createAdminClient());
-  },
+  async (id: string) => fetchLocationByIdFromSupabase(id, createAdminClient()),
   ["archive-location-by-id"],
   {
     revalidate: 300,
@@ -183,10 +149,8 @@ const getCachedLocationById = unstable_cache(
 );
 
 const getCachedLocationChildren = unstable_cache(
-  async (parentId: string | null) => {
-    if (isMockDataEnabled()) return mockStore.getLocationChildren(parentId);
-    return fetchLocationChildrenFromSupabase(parentId, createAdminClient());
-  },
+  async (parentId: string | null) =>
+    fetchLocationChildrenFromSupabase(parentId, createAdminClient()),
   ["archive-location-children"],
   {
     revalidate: 300,
@@ -324,6 +288,21 @@ export async function getDocumentsForCases(
   return fetchDocumentsForCasesFromSupabase(caseIds);
 }
 
+export async function getDocumentCountsForCases(
+  caseIds: string[],
+): Promise<Map<string, number>> {
+  if (caseIds.length === 0) return new Map();
+
+  if (isMockDataEnabled()) {
+    const docMap = mockStore.getDocumentsForCases(caseIds);
+    return new Map(
+      Array.from(docMap.entries()).map(([id, docs]) => [id, docs.length]),
+    );
+  }
+
+  return fetchDocumentCountsForCasesFromSupabase(caseIds);
+}
+
 export async function getDocuments(caseId?: string): Promise<CaseDocument[]> {
   if (isMockDataEnabled()) return mockStore.getDocuments(caseId);
   if (!caseId) return getCachedTopLevelDocuments();
@@ -403,8 +382,8 @@ export async function getLocationChildren(parentId: string | null) {
 }
 
 export async function searchAll(query: string) {
-  const q = query.toLowerCase();
   if (isMockDataEnabled()) {
+    const q = query.toLowerCase();
     const cases = mockStore.getCases({ q: query });
     const movements = mockStore.getMovements().filter(
       (m) =>
@@ -416,16 +395,10 @@ export async function searchAll(query: string) {
 
   const [cases, movements] = await Promise.all([
     fetchCasesFromSupabase({ q: query }, { page: 1, pageSize: 25 }),
-    fetchMovementsFromSupabase({ page: 1, pageSize: 25 }),
+    fetchMovementsSearchFromSupabase(query, { page: 1, pageSize: 25 }),
   ]);
 
-  const filteredMovements = movements.filter(
-    (m) =>
-      m.caseNumber.toLowerCase().includes(q) ||
-      m.destinationOffice.toLowerCase().includes(q),
-  );
-
-  return { cases, movements: filteredMovements };
+  return { cases, movements };
 }
 
 export { mockStore, REPORT_DATA };

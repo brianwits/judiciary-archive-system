@@ -7,6 +7,7 @@ import { isMockDataEnabled } from "@/lib/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { mockStore } from "@/lib/data/mock-store";
+import { DEMO_PASSWORD } from "@/data/seed/users";
 import type { Json } from "@/types/database";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -63,7 +64,6 @@ export async function changePassword(formData: FormData) {
       return actionError("NOT_FOUND", "User not found.");
     }
 
-    const DEMO_PASSWORD = "demo1234";
     if (currentPassword !== DEMO_PASSWORD) {
       return actionError("FORBIDDEN", "Current password is incorrect.");
     }

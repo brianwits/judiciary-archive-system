@@ -153,7 +153,7 @@ export async function updateCase(id: string, formData: FormData) {
     await saveSessionCase(updated);
   } else {
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("cases")
       .update({
         case_number: input.caseNumber,
@@ -175,9 +175,12 @@ export async function updateCase(id: string, formData: FormData) {
         notes: mockFields.notes,
         is_missing: mockFields.isMissing,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
 
     if (error) return actionError("BAD_REQUEST", error.message);
+    if (!data) return actionError("NOT_FOUND", "Case not found.");
   }
 
   await recordAuditLog({
@@ -283,6 +286,12 @@ export async function bulkDeleteCases(ids: string[]) {
       let caseNumber: string | undefined;
 
       if (isMockDataEnabled()) {
+        const existing = mockStore.getCaseById(id);
+        if (!existing) {
+          failed.push(id);
+          continue;
+        }
+        caseNumber = existing.caseNumber;
         if (!mockStore.deleteCase(id)) {
           failed.push(id);
           continue;
