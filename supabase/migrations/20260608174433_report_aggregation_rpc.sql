@@ -51,8 +51,8 @@ BEGIN
   archive_growth AS (
     SELECT
       jsonb_agg(
-        jsonb_build_object('month', sm.month_label, 'count', cumulative.count)
-        ORDER BY sm.month_key ASC
+        jsonb_build_object('month', cumulative.month_label, 'count', cumulative.count)
+        ORDER BY cumulative.month_key ASC
       ) AS data
     FROM (
       SELECT
@@ -62,7 +62,6 @@ BEGIN
         row_number() OVER (ORDER BY sm.month_key DESC) AS rn
       FROM sorted_months sm
     ) cumulative
-    CROSS JOIN sorted_months sm
     WHERE cumulative.rn <= 6
   ),
   -- Missing trend (last 6 months)
@@ -126,18 +125,17 @@ BEGIN
       jsonb_build_object(
         'division', COALESCE(cd.court_division, 'High Court'),
         'avgHours', COALESCE(
-          round(avg(extract(EPOCH FROM (m.actual_return_date - m.expected_return_date)) / 3600)::numeric, 1), 0
+          round(avg((m.actual_return_date - m.expected_return_date) * 24)::numeric, 1), 0
         )
       )
-      ORDER BY avg(extract(EPOCH FROM (m.actual_return_date - m.expected_return_date)) / 3600) DESC NULLS LAST
+      ORDER BY avg((m.actual_return_date - m.expected_return_date) * 24) DESC NULLS LAST
     ) AS data
     FROM movement_data m
     LEFT JOIN case_data cd ON cd.id = m.case_id
     WHERE m.actual_return_date IS NOT NULL
-      AND m.actual_return_date != ''
       AND m.expected_return_date < m.actual_return_date
     GROUP BY cd.court_division
-    ORDER BY avg(extract(EPOCH FROM (m.actual_return_date - m.expected_return_date)) / 3600) DESC NULLS LAST
+    ORDER BY avg((m.actual_return_date - m.expected_return_date) * 24) DESC NULLS LAST
     LIMIT 5
   ),
   -- Scanning throughput by day of week
