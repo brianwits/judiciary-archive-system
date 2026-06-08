@@ -4,21 +4,40 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:webpack": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:start": "npx supabase start",
+    "db:stop": "npx supabase stop",
+    "db:reset": "npx supabase db reset",
+    "db:migrate": "npx supabase migration up",
+    "db:push": "npx supabase db push",
+    "db:types": "npx supabase gen types typescript --local > src/types/database.ts",
+    "db:setup": "npx supabase db push && echo 'Run supabase/seed.sql in SQL Editor, create auth user, then supabase/scripts/promote-admin.sql'",
+    "db:setup-hosted": "node scripts/setup-hosted-supabase.mjs",
+    "db:seed-users": "node scripts/seed-users.mjs",
+    "db:check": "node scripts/db-connection-check.mjs",
+    "audit": "npm audit --audit-level=high",
+    "project:fast-track": "npm run lint && npm run audit && npm run build && npm run db:check",
+    "vercel:configure-supabase": "node scripts/configure-vercel-supabase.mjs",
+    "mcp:add-vercel": "npx --yes add-mcp https://mcp.vercel.com",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npx playwright test --config=e2e/playwright.config.ts",
+    "test:e2e:ui": "npx playwright test --config=e2e/playwright.config.ts --ui"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.106.0",
+    "@supabase/supabase-js": "^2.106.1",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.2.1",
     "lucide-react": "^1.16.0",
-    "next": "16.2.6",
+    "next": "^16.2.6",
     "next-themes": "^0.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -31,13 +50,17 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.2.7",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "lighthouse": "^13.3.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }

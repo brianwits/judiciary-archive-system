@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { UsersManagementTable } from "@/components/users/users-management-table";
 import { UsersTable } from "@/components/admin/users-table";
 import { PageHeader } from "@/components/layout/page-header";
+import { TablePanelSkeleton } from "@/components/shared/page-skeletons";
 import { isMockDataEnabled } from "@/lib/config";
 import { getUsers } from "@/lib/data";
 import { canManageUsers, getSessionProfile } from "@/lib/auth";
@@ -19,11 +21,17 @@ export default async function UsersPage() {
         title="User Management"
         subtitle="Assign roles and manage court staff access to the archive system"
       />
-      {isMockDataEnabled() ? (
-        <UsersManagementTable users={await getUsers()} />
-      ) : (
-        <UsersTable profiles={await listProfiles()} />
-      )}
+      <Suspense fallback={<TablePanelSkeleton rows={8} />}>
+        <UsersPageContent />
+      </Suspense>
     </div>
   );
+}
+
+async function UsersPageContent() {
+  if (isMockDataEnabled()) {
+    return <UsersManagementTable users={await getUsers()} />;
+  }
+
+  return <UsersTable profiles={await listProfiles()} />;
 }

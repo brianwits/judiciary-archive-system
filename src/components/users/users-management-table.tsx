@@ -2,7 +2,7 @@
 
 import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { startTransition, useEffect, useState, type FormEvent } from "react";
 import { updateMockUserRole, updateUserDetails } from "@/app/actions/users";
 import { AsyncButton } from "@/components/shared/async-button";
 import { FormError } from "@/components/shared/form-error";
@@ -16,7 +16,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,10 +37,22 @@ import {
 import { ROLE_LABELS, USER_ROLES } from "@/types/roles";
 import type { UserProfile } from "@/types/user";
 
+const PAGE_SIZE = 10;
+
 export function UsersManagementTable({ users }: { users: UserProfile[] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [page, setPage] = useState(0);
+
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const pageUsers = users.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Clamp page when users change (e.g. after refresh or role update)
+  useEffect(() => {
+    setPage((p) => Math.min(p, Math.max(0, Math.ceil(users.length / PAGE_SIZE) - 1))); // eslint-disable-line react-hooks/set-state-in-effect
+  }, [users.length]);
 
   async function handleRoleChange(userId: string, role: string) {
     setPendingId(userId);
@@ -49,7 +60,7 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
     try {
       const result = await updateMockUserRole(userId, role);
       if (!result.ok) setError(result.error.message);
-      else router.refresh();
+      else startTransition(() => router.refresh());
     } catch {
       setError("Unable to update the user role. Please try again.");
     } finally {
@@ -74,7 +85,7 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
+            {pageUsers.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.fullName}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
@@ -104,47 +115,93 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <EditMockUserDialog
-                    user={user}
-                    pending={pendingId === user.id}
-                    onPendingChange={setPendingId}
-                    onError={setError}
-                    onUpdated={() => router.refresh()}
-                  />
+                  <Button
+                    aria-label={`Edit ${user.fullName}`}
+                    size="icon-sm"
+                    variant="outline"
+                    onClick={() => setEditingUser(user)}
+                  >
+                    <Pencil />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </ResponsiveTableShell>
+
+      {/* Client-side pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, users.length)} of {users.length} users
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Single shared edit dialog — mounted always, renders content only when open */}
+      <SingleEditUserDialog
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
+        pending={editingUser ? pendingId === editingUser.id : false}
+        onPendingChange={setPendingId}
+        onError={setError}
+        onUpdated={() => router.refresh()}
+      />
     </div>
   );
 }
 
-function EditMockUserDialog({
+function SingleEditUserDialog({
   user,
+  onClose,
   pending,
   onPendingChange,
   onError,
   onUpdated,
 }: {
-  user: UserProfile;
+  user: UserProfile | null;
+  onClose: () => void;
   pending: boolean;
   onPendingChange: (id: string | null) => void;
   onError: (message: string | null) => void;
   onUpdated: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [role, setRole] = useState(user.role);
+  const [role, setRole] = useState<string>("");
+  const open = user !== null;
 
   function handleOpenChange(nextOpen: boolean) {
-    if (nextOpen) setRole(user.role);
-    setOpen(nextOpen);
+    if (!nextOpen) onClose();
   }
 
+  // Sync role state when editing a different user — the dialog stays mounted
+  // for close animation continuity, so we update state via effect when the
+  // target user changes.
+  useEffect(() => {
+    if (user) setRole(user.role); // eslint-disable-line react-hooks/set-state-in-effect
+  }, [user]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!user) return;
     onPendingChange(user.id);
     onError(null);
     try {
@@ -155,8 +212,8 @@ function EditMockUserDialog({
         onError(result.error.message);
         return;
       }
-      setOpen(false);
-      onUpdated();
+      onClose();
+      startTransition(() => onUpdated());
     } catch {
       onError("Unable to update the user details. Please try again.");
     } finally {
@@ -166,32 +223,35 @@ function EditMockUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button
-            aria-label={`Edit ${user.fullName}`}
-            size="icon-sm"
-            variant="outline"
-          />
-        }
-      >
-        <Pencil />
-      </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit user details</DialogTitle>
           <DialogDescription>
-            Update staff profile details and archive access.
+            {user ? `Editing ${user.fullName}` : "Update staff profile details and archive access."}
           </DialogDescription>
         </DialogHeader>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="grid gap-4 sm:grid-cols-2">
+        {user && (
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor={`fullName-${user.id}`}>Full name</Label>
+                <Input
+                  id={`fullName-${user.id}`}
+                  name="fullName"
+                  defaultValue={user.fullName}
+                  required
+                />
+              </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor={`fullName-${user.id}`}>Full name</Label>
+              <Label htmlFor={`email-${user.id}`}>
+                Email <span className="text-muted-foreground">(auth)</span>
+              </Label>
               <Input
-                id={`fullName-${user.id}`}
-                name="fullName"
-                defaultValue={user.fullName}
+                id={`email-${user.id}`}
+                name="email"
+                type="email"
+                defaultValue={user.email}
+                placeholder="user@court.go.ke"
                 required
               />
             </div>
@@ -213,35 +273,36 @@ function EditMockUserDialog({
                 placeholder="ICT"
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Role</Label>
-              <Select
-                value={role}
-                disabled={pending}
-                onValueChange={(value) => setRole(value as UserProfile["role"])}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {USER_ROLES.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {ROLE_LABELS[option]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Role</Label>
+                <Select
+                  value={role}
+                  disabled={pending}
+                  onValueChange={(value) => setRole(value as UserProfile["role"])}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {USER_ROLES.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {ROLE_LABELS[option]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <AsyncButton pending={pending} pendingLabel="Saving" type="submit">
-              Save changes
-            </AsyncButton>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <AsyncButton pending={pending} pendingLabel="Saving" type="submit">
+                Save changes
+              </AsyncButton>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

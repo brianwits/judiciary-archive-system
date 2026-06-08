@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import {
   deleteDocument,
   getDocumentDownloadUrl,
@@ -65,7 +65,7 @@ export function DocumentList({
         setError(result.error.message);
         return;
       }
-      router.refresh();
+      startTransition(() => router.refresh());
     } catch {
       setError("Unable to delete the document. Please try again.");
     } finally {

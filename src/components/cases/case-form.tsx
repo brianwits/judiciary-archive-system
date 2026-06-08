@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { createCase, updateCase } from "@/app/actions/cases";
 import { AsyncButton } from "@/components/shared/async-button";
 import { FormError } from "@/components/shared/form-error";
@@ -47,7 +48,8 @@ export function CaseForm({ mode, initial }: CaseFormProps) {
       if (mode === "edit") {
         setSuccess(true);
       }
-    } catch {
+    } catch (error: unknown) {
+      unstable_rethrow(error);
       setError("Unable to save the case. Please try again.");
     } finally {
       setPending(false);

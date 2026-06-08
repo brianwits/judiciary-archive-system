@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 import { checkoutSchema, type CheckoutInput } from "@/contracts";
 import { checkoutFile } from "@/app/actions/tracking";
@@ -39,7 +39,7 @@ export function CheckoutForm() {
         return;
       }
       reset();
-      router.refresh();
+      startTransition(() => router.refresh());
     } catch {
       setError("Unable to check out the file. Please try again.");
     }

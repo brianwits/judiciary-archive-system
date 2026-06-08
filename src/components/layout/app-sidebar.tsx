@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, Scale } from "lucide-react";
-import { useState } from "react";
-import { MAIN_NAV } from "@/config/navigation";
+import { useMemo, useState } from "react";
+import { navItemsWithBadges, type NavCounts } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { hasPermission } from "@/types/roles";
 import type { UserRole } from "@/types/roles";
@@ -13,20 +13,22 @@ import { Button } from "@/components/ui/button";
 
 type AppSidebarProps = {
   role: UserRole;
+  navCounts: NavCounts;
 };
 
-export function AppSidebar({ role }: AppSidebarProps) {
+export function AppSidebar({ role, navCounts }: AppSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const navItems = useMemo(() => navItemsWithBadges(navCounts), [navCounts]);
 
-  const visibleNav = MAIN_NAV.filter(
+  const visibleNav = navItems.filter(
     (item) => !item.permission || hasPermission(role, item.permission),
   );
 
   return (
     <aside
       className={cn(
-        "hidden h-full flex-col bg-sidebar text-sidebar-foreground shadow-xl shadow-primary/10 transition-all duration-300 md:flex",
+        "hidden h-full flex-col bg-gradient-to-b from-sidebar to-sidebar/95 text-sidebar-foreground shadow-xl shadow-primary/10 transition-all duration-300 print:hidden md:flex",
         collapsed ? "w-16" : "w-64",
       )}
     >
@@ -55,22 +57,22 @@ export function AppSidebar({ role }: AppSidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
                   : "text-sidebar-foreground/78 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
               )}
             >
               {isActive && (
-                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-accent" />
+                <span className="absolute left-0 top-1/2 h-5 w-1.5 -translate-y-1/2 rounded-r-full bg-accent" />
               )}
-              <Icon className="size-4 shrink-0" />
+              <Icon className="size-4 shrink-0 transition-transform duration-200 will-change-transform group-hover:scale-110" />
               {!collapsed && (
                 <>
                   <span className="flex-1 truncate">{item.title}</span>
-                  {item.badge !== undefined && (
+                  {item.liveBadge !== undefined && (
                     <Badge className="bg-accent text-accent-foreground text-xs">
-                      {item.badge}
+                      {item.liveBadge}
                     </Badge>
                   )}
                 </>

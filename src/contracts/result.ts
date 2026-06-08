@@ -5,7 +5,8 @@ export type ContractErrorCode =
   | "NOT_FOUND"
   | "VALIDATION_ERROR"
   | "CONFLICT"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "TOO_MANY_REQUESTS";
 
 export type FieldErrors = Record<string, string[]>;
 

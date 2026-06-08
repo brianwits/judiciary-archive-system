@@ -50,3 +50,14 @@ export function getLocationChildren(parentId: string | null): ArchiveLocation[] 
 export function getLocationById(id: string): ArchiveLocation | undefined {
   return SEED_LOCATIONS.find((l) => l.id === id);
 }
+
+/** Builds root › … › leaf codes for mock archive inventory (mirrors hierarchy walk in app). */
+export function buildMockArchiveDisplayPath(locationId: string): string {
+  const chain: ArchiveLocation[] = [];
+  let cur: ArchiveLocation | undefined = getLocationById(locationId);
+  while (cur) {
+    chain.push(cur);
+    cur = cur.parentId ? getLocationById(cur.parentId) : undefined;
+  }
+  return [...chain].reverse().map((l) => l.code).join(" › ") || "";
+}

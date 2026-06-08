@@ -1,4 +1,5 @@
 import type { UserRole } from "./roles";
+import type { NotificationPreferences } from "./notification";
 
 export type UserProfile = {
   id: string;
@@ -8,6 +9,7 @@ export type UserProfile = {
   department: string | null;
   role: UserRole;
   isActive: boolean;
+  notificationPreferences?: NotificationPreferences;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,7 +1,11 @@
-import { MovementTable } from "@/components/tracking/movement-table";
+import dynamic from "next/dynamic";
+import { Suspense } from "react";
 import { CheckoutForm } from "@/components/tracking/checkout-form";
 import { CheckinForm } from "@/components/tracking/checkin-form";
 import { PageHeader } from "@/components/layout/page-header";
+
+const DynamicMovementTable = dynamic(() => import("@/components/tracking/movement-table").then((m) => ({ default: m.MovementTable })));
+import { TablePanelSkeleton } from "@/components/shared/page-skeletons";
 import {
   Card,
   CardContent,
@@ -12,18 +16,30 @@ import {
 import { getMovements } from "@/lib/data";
 
 export default async function TrackingPage() {
-  const movements = await getMovements();
-  const openMovements = movements.filter(
-    (m) => m.status === "checked_out" || m.status === "in_transit" || m.status === "overdue",
-  );
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="File Tracking"
         subtitle="Checkout, check-in, and monitor physical file movements"
       />
+      <Suspense fallback={<TrackingPageSkeleton />}>
+        <TrackingPageContent />
+      </Suspense>
+    </div>
+  );
+}
 
+async function TrackingPageContent() {
+  const movements = await getMovements();
+  const openMovements = movements.filter(
+    (movement) =>
+      movement.status === "checked_out" ||
+      movement.status === "in_transit" ||
+      movement.status === "overdue",
+  );
+
+  return (
+    <>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -52,9 +68,23 @@ export default async function TrackingPage() {
           <CardDescription>All file checkouts and returns</CardDescription>
         </CardHeader>
         <CardContent>
-          <MovementTable movements={movements} />
+          <Suspense fallback={<TablePanelSkeleton rows={7} />}>
+            <DynamicMovementTable movements={movements} />
+          </Suspense>
         </CardContent>
       </Card>
+    </>
+  );
+}
+
+function TrackingPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <TablePanelSkeleton rows={4} />
+        <TablePanelSkeleton rows={4} />
+      </div>
+      <TablePanelSkeleton rows={7} />
     </div>
   );
 }

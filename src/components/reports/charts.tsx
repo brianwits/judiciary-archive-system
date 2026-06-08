@@ -1,12 +1,8 @@
 "use client";
 
+import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  Activity,
-  Archive,
   Clock3,
-  FileWarning,
-  ScanLine,
-  Scale,
 } from "lucide-react";
 import {
   Area,
@@ -15,7 +11,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
+  LabelList,
   Line,
   LineChart,
   Pie,
@@ -32,347 +28,595 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import {
+  computeDerived,
+  formatCompact,
+  formatNumber,
+  type ReportData,
+} from "@/lib/reports-computations";
 
-const COLORS = {
-  primary: "var(--primary)",
-  secondary: "var(--secondary)",
-  accent: "var(--accent)",
-  success: "var(--success)",
-  warning: "var(--warning)",
-  destructive: "var(--destructive)",
+
+
+const PALETTE = {
+  ink: "var(--foreground)",
+  card: "var(--card)",
+  cardForeground: "var(--card-foreground)",
+  border: "color-mix(in srgb, var(--border) 76%, transparent)",
+  grid: "color-mix(in srgb, var(--border) 58%, transparent)",
   muted: "var(--muted)",
   mutedForeground: "var(--muted-foreground)",
-  card: "var(--card)",
-  border: "var(--border)",
+  emerald: "var(--primary)",
+  emeraldSoft: "color-mix(in srgb, var(--primary) 12%, white)",
+  emeraldGlow: "color-mix(in srgb, var(--primary) 28%, transparent)",
+  teal: "var(--secondary)",
+  tealSoft: "color-mix(in srgb, var(--secondary) 16%, white)",
+  gold: "var(--accent)",
+  goldSoft: "color-mix(in srgb, var(--accent) 18%, white)",
+  danger: "var(--destructive)",
+  dangerSoft: "color-mix(in srgb, var(--destructive) 14%, white)",
+  success: "var(--success)",
+  successSoft: "color-mix(in srgb, var(--success) 14%, white)",
+  warning: "var(--warning)",
+  warningSoft: "color-mix(in srgb, var(--warning) 18%, white)",
+  blue: "#235789",
+  blueSoft: "color-mix(in srgb, #235789 16%, white)",
 };
 
 const DIVISION_COLORS = [
-  COLORS.primary,
-  COLORS.secondary,
-  COLORS.accent,
-  COLORS.success,
-  COLORS.warning,
+  PALETTE.emerald,
+  PALETTE.gold,
+  PALETTE.teal,
+  PALETTE.success,
+  PALETTE.blue,
+  PALETTE.warning,
 ];
 
 const tooltipStyle = {
-  backgroundColor: COLORS.card,
-  border: `1px solid ${COLORS.border}`,
-  borderRadius: "0.625rem",
-  boxShadow: "0 12px 30px rgb(0 0 0 / 0.12)",
-  color: "var(--card-foreground)",
+  backgroundColor: "color-mix(in srgb, var(--card) 96%, white)",
+  border: `1px solid ${PALETTE.border}`,
+  borderRadius: "1rem",
+  boxShadow: "0 24px 60px rgb(1 50 32 / 0.18)",
+  color: PALETTE.cardForeground,
+  padding: "0.85rem 0.95rem",
 };
 
-type ReportData = {
-  archiveGrowth: { month: string; count: number }[];
-  missingTrend: { month: string; count: number }[];
-  movementFrequency: { week: string; checkouts: number; returns: number }[];
-  divisionStats: { name: string; value: number }[];
-  retrievalPerformance: { division: string; avgHours: number }[];
-  scanningPerformance: { day: string; scans: number }[];
-};
-
-type StatCardProps = {
-  label: string;
-  value: string;
-  detail: string;
-  icon: React.ElementType;
-  tone?: "primary" | "success" | "warning" | "danger";
-};
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("en").format(value);
+function numberFromChartValue(value: unknown) {
+  return typeof value === "number" ? value : Number(value ?? 0);
 }
 
-function getLastValue<T>(items: T[], fallback: T): T {
-  return items.at(-1) ?? fallback;
-}
+/**
+ * Defers chart rendering until the container has positive dimensions.
+ * Prevents Recharts' ResponsiveContainer from logging "width/height should be greater than 0"
+ * when it mounts before the card layout is settled (common with next/dynamic + Suspense).
+ */
+function ChartReady({
+  children,
+  className,
+  fallback,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** Custom skeleton shown while the container dimensions are still zero. */
+  fallback?: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
 
-function StatCard({ label, value, detail, icon: Icon, tone = "primary" }: StatCardProps) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const measure = () => {
+      const { width, height } = el.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        setReady(true);
+        return true;
+      }
+      return false;
+    };
+
+    // Try immediately in case layout is already settled
+    if (measure()) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          setReady(true);
+          observer.disconnect();
+          break;
+        }
+      }
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <Card className="shadow-sm">
-      <CardContent className="flex items-start justify-between gap-4 pt-4">
-        <div className="min-w-0 space-y-2">
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold tracking-tight">{value}</p>
-          <p className="text-xs font-medium text-muted-foreground">{detail}</p>
-        </div>
-        <div
-          className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-lg",
-            tone === "primary" && "bg-primary/10 text-primary",
-            tone === "success" && "bg-success/10 text-success",
-            tone === "warning" && "bg-warning/10 text-warning",
-            tone === "danger" && "bg-destructive/10 text-destructive",
-          )}
-        >
-          <Icon className="size-5" />
-        </div>
-      </CardContent>
-    </Card>
+    <div ref={ref} className={cn("size-full", className)}>
+      {ready ? children : (fallback ?? <ChartSkeletonDefault />)}
+    </div>
   );
 }
 
-function ChartCard({
+/** Skeleton for area / bar / line charts — subtle grid + wave pattern. */
+function ChartSkeletonDefault() {
+  return (
+    <div className="flex size-full flex-col gap-2 p-2">
+      {/* Simulated Y-axis labels */}
+      <div className="flex items-end gap-3 flex-1">
+        <div className="flex h-full flex-col justify-between py-1">
+          <Skeleton className="h-2 w-6 rounded" />
+          <Skeleton className="h-2 w-4 rounded" />
+          <Skeleton className="h-2 w-3 rounded" />
+        </div>
+        {/* Chart area with subtle grid lines and a wave shape */}
+        <div className="relative flex-1 h-full rounded-lg overflow-hidden">
+          {/* Grid lines */}
+          <div className="absolute inset-0 flex flex-col justify-between px-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-px w-full bg-border/30" />
+            ))}
+          </div>
+          {/* Wave-like bars */}
+          <div className="absolute inset-x-2 bottom-0 flex items-end gap-1.5">
+            {[35, 55, 45, 65, 50, 40].map((h, i) => (
+              <Skeleton
+                key={i}
+                className="flex-1 rounded-t-sm"
+                style={{ height: `${h}%` }}
+              />
+            ))}
+          </div>
+          {/* X-axis skeleton bar */}
+          <div className="absolute bottom-0 inset-x-2 h-px bg-border/40" />
+        </div>
+      </div>
+      {/* Simulated X-axis labels */}
+      <div className="flex justify-between px-1">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-2 w-7 rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Skeleton for pie charts — circular placeholder + legend text lines. */
+function ChartSkeletonPie() {
+  return (
+    <div className="flex size-full items-center gap-4 p-2">
+      {/* Circle placeholder */}
+      <div className="relative shrink-0 flex items-center justify-center">
+        <Skeleton className="size-28 rounded-full" />
+        <div className="absolute inset-3 rounded-full bg-background" />
+      </div>
+      {/* Legend lines */}
+      <div className="flex flex-col gap-3 flex-1 min-w-0">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Skeleton className="size-2.5 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-1">
+              <Skeleton className="h-3 w-24 rounded" />
+              <Skeleton className="h-3 w-16 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PremiumChartCard({
   title,
   description,
   value,
+  insight,
   className,
+  chartClassName,
   children,
 }: {
   title: string;
   description: string;
   value?: string;
+  insight?: string;
   className?: string;
-  children: React.ReactNode;
+  chartClassName?: string;
+  children: ReactNode;
 }) {
   return (
-    <Card className={cn("shadow-sm", className)}>
-      <CardHeader className="gap-2 sm:grid-cols-[1fr_auto]">
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </div>
-        {value ? (
-          <div className="rounded-lg bg-muted px-3 py-2 text-right">
-            <p className="text-lg font-semibold leading-none">{value}</p>
-            <p className="mt-1 text-[11px] font-medium uppercase text-muted-foreground">
-              Current
-            </p>
+    <Card
+      className={cn(
+        "overflow-hidden border-border/70 shadow-sm",
+        className,
+      )}
+    >
+      <CardHeader>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-1">
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
           </div>
-        ) : null}
+          {value ? (
+            <div className="rounded-2xl border border-border/70 bg-background/90 px-4 py-3 text-right shadow-sm">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                Snapshot
+              </p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
+              {insight ? <p className="mt-1 text-xs text-muted-foreground">{insight}</p> : null}
+            </div>
+          ) : null}
+        </div>
       </CardHeader>
-      <CardContent className="h-[300px]">{children}</CardContent>
+      <CardContent
+        className={cn(
+          "min-h-0 min-w-0 p-5",
+          chartClassName ?? "flex h-[340px] flex-col",
+        )}
+      >
+        {children}
+      </CardContent>
     </Card>
   );
 }
 
-export function ReportCharts({ data }: { data: ReportData }) {
-  const latestArchive = getLastValue(data.archiveGrowth, { month: "N/A", count: 0 });
-  const latestMissing = getLastValue(data.missingTrend, { month: "N/A", count: 0 });
-  const totalCheckouts = data.movementFrequency.reduce(
-    (total, item) => total + item.checkouts,
-    0,
-  );
-  const totalReturns = data.movementFrequency.reduce((total, item) => total + item.returns, 0);
-  const totalScans = data.scanningPerformance.reduce((total, item) => total + item.scans, 0);
+function ReportChartsInner({ data }: { data: ReportData }) {
+  const d = computeDerived(data);
   const averageRetrieval =
     data.retrievalPerformance.reduce((total, item) => total + item.avgHours, 0) /
     Math.max(data.retrievalPerformance.length, 1);
+  const topDivision = data.divisionStats.reduce(
+    (best, item) => (item.value > best.value ? item : best),
+    data.divisionStats[0] ?? { name: "N/A", value: 0 },
+  );
+  const retrievalRanking = [...data.retrievalPerformance].sort((a, b) => a.avgHours - b.avgHours);
+  const throughputSeries = data.scanningPerformance.map((item, index) => ({
+    ...item,
+    pace: index === 0 ? item.scans : Math.round((item.scans + data.scanningPerformance[index - 1].scans) / 2),
+  }));
+  const operationalRisk = [
+    { name: "Missing files", value: d.latestMissing.count, fill: PALETTE.danger },
+    { name: "Open returns gap", value: Math.max(d.totalCheckouts - d.totalReturns, 0), fill: PALETTE.warning },
+    { name: "Slow retrieval load", value: Math.round(averageRetrieval * 3), fill: PALETTE.blue },
+    { name: "Stable flow", value: Math.max(d.totalReturns, 1), fill: PALETTE.success },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Archived files"
-          value={formatNumber(latestArchive.count)}
-          detail={`Total through ${latestArchive.month}`}
-          icon={Archive}
-        />
-        <StatCard
-          label="Missing files"
-          value={formatNumber(latestMissing.count)}
-          detail="Open location exceptions"
-          icon={FileWarning}
-          tone="danger"
-        />
-        <StatCard
-          label="Movement balance"
-          value={`${formatNumber(totalReturns)}/${formatNumber(totalCheckouts)}`}
-          detail="Returns against checkouts"
-          icon={Activity}
-          tone={totalReturns >= totalCheckouts ? "success" : "warning"}
-        />
-        <StatCard
-          label="Scans this week"
-          value={formatNumber(totalScans)}
-          detail="Digitized document volume"
-          icon={ScanLine}
-          tone="success"
-        />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-3">
-        <ChartCard
-          title="Archive growth"
-          description="Total archived files by month"
-          value={formatNumber(latestArchive.count)}
-          className="xl:col-span-2"
+    <div className="space-y-8">
+      {/* Section 1: Archive growth + Division mix — rendered immediately */}
+      <section className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
+        <PremiumChartCard
+          title="Archive growth trajectory"
+          description="Cumulative archival volume with recent acceleration highlighted across the latest reporting months."
+          value={formatCompact(d.latestArchive.count)}
+          insight={`+${Math.max(d.latestArchive.count - d.previousArchive, 0)} over the previous period`}
+          chartClassName="flex h-[380px] flex-col"
         >
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <AreaChart data={data.archiveGrowth} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <ChartReady>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+            <AreaChart data={data.archiveGrowth} margin={{ top: 12, right: 16, left: 4, bottom: 4 }}>
               <defs>
-                <linearGradient id="archiveGrowthFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.28} />
-                  <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0.02} />
+                <linearGradient id="executiveArchiveFill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor={PALETTE.emerald} stopOpacity={0.34} />
+                  <stop offset="70%" stopColor={PALETTE.teal} stopOpacity={0.12} />
+                  <stop offset="100%" stopColor={PALETTE.teal} stopOpacity={0.01} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} />
-              <YAxis tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} width={54} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: COLORS.accent, strokeWidth: 1 }} />
+              <CartesianGrid stroke={PALETTE.grid} strokeDasharray="4 4" vertical={false} />
+              <XAxis dataKey="month" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} width={52} />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                cursor={{ stroke: PALETTE.gold, strokeWidth: 1, strokeDasharray: "4 4" }}
+                formatter={(value) => [formatNumber(numberFromChartValue(value)), "Archived files"]}
+              />
               <Area
                 type="monotone"
                 dataKey="count"
-                name="Archived files"
-                stroke={COLORS.primary}
+                stroke={PALETTE.emerald}
                 strokeWidth={3}
-                fill="url(#archiveGrowthFill)"
-                activeDot={{ r: 5, strokeWidth: 0, fill: COLORS.accent }}
+                fill="url(#executiveArchiveFill)"
+                activeDot={{ r: 5, fill: PALETTE.gold, stroke: "white", strokeWidth: 2 }}
               />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Cases by division"
-          description="Distribution across court divisions"
-          value={`${data.divisionStats.length} divisions`}
-        >
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <PieChart>
-              <Pie
-                data={data.divisionStats}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="48%"
-                innerRadius={58}
-                outerRadius={92}
-                paddingAngle={2}
-              >
-                {data.divisionStats.map((item, index) => (
-                  <Cell key={item.name} fill={DIVISION_COLORS[index % DIVISION_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend
-                iconType="circle"
-                layout="horizontal"
-                verticalAlign="bottom"
-                wrapperStyle={{ color: COLORS.mutedForeground, fontSize: 12 }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Movement frequency"
-          description="Weekly checkouts compared with returns"
-          value={`${formatNumber(totalCheckouts)} moves`}
-          className="xl:col-span-2"
-        >
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <BarChart data={data.movementFrequency} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="week" tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} />
-              <YAxis tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} width={42} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: COLORS.muted, opacity: 0.45 }} />
-              <Legend wrapperStyle={{ color: COLORS.mutedForeground, fontSize: 12 }} />
-              <Bar dataKey="checkouts" name="Checkouts" fill={COLORS.primary} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="returns" name="Returns" fill={COLORS.success} radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Missing files trend"
-          description="Unresolved missing file count"
-          value={formatNumber(latestMissing.count)}
-        >
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <LineChart data={data.missingTrend} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} />
-              <YAxis tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} width={36} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: COLORS.destructive, strokeWidth: 1 }} />
               <Line
                 type="monotone"
                 dataKey="count"
-                name="Missing files"
-                stroke={COLORS.destructive}
-                strokeWidth={3}
-                dot={{ r: 3, fill: COLORS.destructive, strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: COLORS.destructive, strokeWidth: 0 }}
+                stroke={PALETTE.gold}
+                strokeWidth={1.4}
+                dot={false}
+                strokeOpacity={0.9}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
-        </ChartCard>
+          </ChartReady>
+        </PremiumChartCard>
 
-        <ChartCard
-          title="Retrieval performance"
-          description="Average hours to retrieve files by division"
-          value={`${averageRetrieval.toFixed(1)}h avg`}
+        <PremiumChartCard
+          title="Division mix"
+          description="Where archival volume is concentrated across the court system."
+          value={topDivision.name}
+          insight={`${formatNumber(topDivision.value)} files lead concentration`}
+          chartClassName="flex h-[380px] flex-col gap-5"
         >
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <BarChart
-              data={data.retrievalPerformance}
-              layout="vertical"
-              margin={{ top: 8, right: 12, left: 10, bottom: 0 }}
-            >
-              <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} />
-              <YAxis
-                dataKey="division"
-                type="category"
-                width={92}
-                tick={{ fill: COLORS.mutedForeground, fontSize: 11 }}
-                tickLine={false}
-              />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: COLORS.muted, opacity: 0.45 }} />
-              <Bar dataKey="avgHours" name="Avg hours" fill={COLORS.warning} radius={[0, 6, 6, 0]} />
+          <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[1fr_190px]">
+            <div className="relative h-[260px] min-w-0 flex-1">
+              <ChartReady fallback={<ChartSkeletonPie />}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                <PieChart>
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value, _name, item) => [
+                      formatNumber(numberFromChartValue(value)),
+                      String(item.payload.name),
+                    ]}
+                  />
+                  <Pie
+                    data={data.divisionStats}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={72}
+                    outerRadius={112}
+                    paddingAngle={3}
+                    stroke="rgba(255,255,255,0.9)"
+                    strokeWidth={3}
+                  >
+                    {data.divisionStats.map((item, index) => (
+                      <Cell key={item.name} fill={DIVISION_COLORS[index % DIVISION_COLORS.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              </ChartReady>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  Lead division
+                </p>
+                <p className="mt-1 text-center text-xl font-semibold text-foreground">{topDivision.name}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{formatNumber(topDivision.value)} indexed files</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {data.divisionStats.map((item, index) => (
+                <div key={item.name} className="rounded-2xl border border-border/70 bg-background/75 px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="size-2.5 rounded-full"
+                      style={{ backgroundColor: DIVISION_COLORS[index % DIVISION_COLORS.length] }}
+                    />
+                    <p className="text-sm font-medium text-foreground">{item.name}</p>
+                  </div>
+                  <div className="mt-2 flex items-end justify-between gap-3">
+                    <span className="text-2xl font-semibold tracking-tight text-foreground">
+                      {formatNumber(item.value)}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {Math.round((item.value / Math.max(d.latestArchive.count, 1)) * 100)}% share
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </PremiumChartCard>
+      </section>
+
+      {/* Section 2: Movement health + Operational risk — rendered immediately */}
+      <section className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+        <PremiumChartCard
+          title="Movement health"
+          description="Weekly custody flow comparing outbound file movement against confirmed returns."
+          value={`${d.movementRecovery}%`}
+          insight="Return recovery across the current reporting window"
+          chartClassName="flex h-[340px] flex-col"
+        >
+          <ChartReady>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+            <BarChart data={data.movementFrequency} margin={{ top: 12, right: 16, left: 4, bottom: 0 }} barGap={12}>
+              <CartesianGrid stroke={PALETTE.grid} strokeDasharray="4 4" vertical={false} />
+              <XAxis dataKey="week" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} width={48} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: PALETTE.emeraldGlow, opacity: 0.3 }} />
+              <Bar dataKey="checkouts" name="Checkouts" fill={PALETTE.emerald} radius={[10, 10, 0, 0]} />
+              <Bar dataKey="returns" name="Returns" fill={PALETTE.gold} radius={[10, 10, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </ChartCard>
+          </ChartReady>
+        </PremiumChartCard>
 
-        <ChartCard
-          title="Scanning performance"
-          description="Daily document scans this week"
-          value={formatNumber(totalScans)}
+        <PremiumChartCard
+          title="Operational risk mix"
+          description="A pie view of the current pressure points affecting custody, retrieval, and throughput."
+          value={formatNumber(operationalRisk.reduce((sum, item) => sum + item.value, 0))}
+          insight="Composite exception load"
+          chartClassName="flex h-[340px] flex-col gap-5"
         >
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <BarChart data={data.scanningPerformance} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="day" tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} />
-              <YAxis tick={{ fill: COLORS.mutedForeground, fontSize: 12 }} tickLine={false} width={42} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: COLORS.muted, opacity: 0.45 }} />
-              <Bar dataKey="scans" name="Scans" fill={COLORS.accent} radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+          <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[1fr_180px]">
+            <div className="relative h-[220px] min-w-0 flex-1">
+              <ChartReady fallback={<ChartSkeletonPie />}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                <PieChart>
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value, _name, item) => [
+                      formatNumber(numberFromChartValue(value)),
+                      String(item.payload.name),
+                    ]}
+                  />
+                  <Pie
+                    data={operationalRisk}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={58}
+                    outerRadius={100}
+                    paddingAngle={3}
+                    stroke="rgba(255,255,255,0.9)"
+                    strokeWidth={3}
+                  >
+                    {operationalRisk.map((item) => (
+                      <Cell key={item.name} fill={item.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              </ChartReady>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Risk view</p>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">{d.movementRecovery}%</p>
+                <p className="text-xs text-muted-foreground">recovery confidence</p>
+              </div>
+            </div>
 
-        <Card className="bg-primary text-primary-foreground shadow-sm xl:col-span-3">
-          <CardContent className="grid gap-4 pt-4 sm:grid-cols-3">
-            <div className="flex items-start gap-3">
-              <Scale className="mt-0.5 size-5 text-accent" />
-              <div>
-                <p className="font-medium">Judiciary reporting palette</p>
-                <p className="mt-1 text-sm text-primary-foreground/75">
-                  Green tracks custody and archive growth, gold highlights throughput, and red is reserved for exceptions.
-                </p>
-              </div>
+            <div className="space-y-3">
+              {operationalRisk.map((item) => (
+                <div key={item.name} className="rounded-2xl border border-border/70 bg-background/75 px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="size-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
+                    <p className="text-sm font-medium text-foreground">{item.name}</p>
+                  </div>
+                  <p className="mt-2 text-xl font-semibold tracking-tight text-foreground">{formatNumber(item.value)}</p>
+                </div>
+              ))}
             </div>
-            <div className="flex items-start gap-3">
-              <Clock3 className="mt-0.5 size-5 text-accent" />
-              <div>
-                <p className="font-medium">Average retrieval</p>
-                <p className="mt-1 text-sm text-primary-foreground/75">
-                  Current cross-division average is {averageRetrieval.toFixed(1)} hours.
-                </p>
+          </div>
+        </PremiumChartCard>
+      </section>
+
+      {/* Section 3 + 4: Missing-file trend, Retrieval latency, Scanning cadence, Summary */}
+        <section className="grid gap-6 xl:grid-cols-3">
+          <PremiumChartCard
+            title="Missing-file trend"
+            description="Monthly unresolved exception count, styled as a compact risk signal."
+            value={formatNumber(d.latestMissing.count)}
+            insight="Current unresolved count"
+            chartClassName="flex h-[320px] flex-col"
+          >
+            <ChartReady>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+              <LineChart data={data.missingTrend} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke={PALETTE.grid} strokeDasharray="4 4" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} width={36} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  cursor={{ stroke: PALETTE.danger, strokeWidth: 1, strokeDasharray: "4 4" }}
+                  formatter={(value) => [formatNumber(numberFromChartValue(value)), "Missing files"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke={PALETTE.danger}
+                  strokeWidth={3}
+                  dot={{ r: 3, fill: PALETTE.danger, strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: PALETTE.gold, stroke: "white", strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            </ChartReady>
+          </PremiumChartCard>
+
+          <PremiumChartCard
+            title="Retrieval latency"
+            description="Fastest divisions appear first to make service leaders easy to spot."
+            value={`${averageRetrieval.toFixed(1)}h`}
+            insight="Cross-division average"
+            className="xl:col-span-2"
+            chartClassName="flex h-[320px] flex-col"
+          >
+            <ChartReady>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+              <BarChart data={retrievalRanking} layout="vertical" margin={{ top: 12, right: 22, left: 18, bottom: 0 }}>
+                <CartesianGrid stroke={PALETTE.grid} strokeDasharray="4 4" horizontal={false} />
+                <XAxis type="number" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis
+                  dataKey="division"
+                  type="category"
+                  width={120}
+                  tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  cursor={{ fill: PALETTE.goldSoft, opacity: 0.25 }}
+                  formatter={(value) => [`${numberFromChartValue(value).toFixed(1)}h`, "Average retrieval"]}
+                />
+                <Bar dataKey="avgHours" fill={PALETTE.warning} radius={[0, 12, 12, 0]}>
+                  <LabelList
+                    dataKey="avgHours"
+                    position="right"
+                    formatter={(value) => `${numberFromChartValue(value).toFixed(1)}h`}
+                    className="fill-muted-foreground text-xs"
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            </ChartReady>
+          </PremiumChartCard>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <PremiumChartCard
+            title="Scanning cadence"
+            description="Daily throughput with a smoothed pace line to reveal consistency, not just spikes."
+            value={formatNumber(d.totalScans)}
+            insight={`${d.peakScanDay.day} leads weekly throughput`}
+            chartClassName="flex h-[320px] flex-col"
+          >
+            <ChartReady>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+              <AreaChart data={throughputSeries} margin={{ top: 12, right: 16, left: 4, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="scanThroughputFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor={PALETTE.gold} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={PALETTE.gold} stopOpacity={0.03} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={PALETTE.grid} strokeDasharray="4 4" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} width={42} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="scans"
+                  name="Scans"
+                  stroke={PALETTE.gold}
+                  strokeWidth={3}
+                  fill="url(#scanThroughputFill)"
+                  activeDot={{ r: 5, fill: PALETTE.emerald, stroke: "white", strokeWidth: 2 }}
+                />
+                <Line type="monotone" dataKey="pace" name="Pace line" stroke={PALETTE.emerald} strokeWidth={2} dot={false} strokeDasharray="5 5" />
+              </AreaChart>
+            </ResponsiveContainer>
+            </ChartReady>
+          </PremiumChartCard>
+
+          <Card className="overflow-hidden border-border/70 shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                <Clock3 className="size-4" />
+                <span className="font-medium">Summary</span>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Activity className="mt-0.5 size-5 text-accent" />
-              <div>
-                <p className="font-medium">Movement control</p>
-                <p className="mt-1 text-sm text-primary-foreground/75">
-                  Returns are at {Math.round((totalReturns / Math.max(totalCheckouts, 1)) * 100)}% of weekly checkouts.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              <p className="text-base text-foreground leading-relaxed">
+                The archive is expanding steadily (+{d.archiveGrowthRate.toFixed(1)}% growth). {" "}
+                Retrieval latency averages {averageRetrieval.toFixed(1)}h across divisions, with {" "}
+                <strong>{retrievalRanking[0]?.division ?? "N/A"}</strong> performing fastest. {" "}
+                {d.movementRecovery < 90
+                  ? `Movement recovery is at ${d.movementRecovery}% — closing the returns gap improves custody tracking.`
+                  : `Movement recovery is strong at ${d.movementRecovery}%.`
+                }
+              </p>
+            </CardContent>
+          </Card>
+        </section>
     </div>
   );
 }
+
+export const ReportCharts = memo(ReportChartsInner);

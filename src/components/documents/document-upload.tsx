@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import { uploadDocument } from "@/app/actions/documents";
 import { AsyncButton } from "@/components/shared/async-button";
 import { FormError } from "@/components/shared/form-error";
+import { MAX_DOCUMENT_FILE_SIZE_LABEL } from "@/contracts/documents";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -22,7 +23,7 @@ export function DocumentUpload({ caseId }: { caseId: string }) {
         setError(result.error.message);
         return;
       }
-      router.refresh();
+      startTransition(() => router.refresh());
     } catch {
       setError("Unable to upload the document. Please try again.");
     } finally {
@@ -38,7 +39,7 @@ export function DocumentUpload({ caseId }: { caseId: string }) {
           <Input id="title" name="title" placeholder="e.g. Filing affidavit" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="file">File (PDF or image, max 25 MB)</Label>
+          <Label htmlFor="file">{`File (PDF or image, max ${MAX_DOCUMENT_FILE_SIZE_LABEL})`}</Label>
           <Input
             id="file"
             name="file"

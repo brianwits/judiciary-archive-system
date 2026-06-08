@@ -1,65 +1,59 @@
-import { format } from "date-fns";
+import dynamic from "next/dynamic";
+import { Suspense } from "react";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { TablePanelSkeleton } from "@/components/shared/page-skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { getSessionProfile } from "@/lib/auth";
 import { getRegistryRequests } from "@/lib/data";
-import type { RegistryRequest } from "@/types/dashboard";
+import { hasPermission } from "@/types/roles";
 
-const STATUS_STYLES: Record<RegistryRequest["status"], string> = {
-  pending: "bg-warning/15 text-warning",
-  in_progress: "bg-primary/15 text-primary",
-  completed: "bg-success/15 text-success",
-  rejected: "bg-destructive/15 text-destructive",
-};
+const DynamicRegistryRequestForm = dynamic(
+  () => import("@/components/registry/registry-request-form").then((m) => ({ default: m.RegistryRequestForm })),
+);
+const DynamicRegistryRequestsTable = dynamic(
+  () => import("@/components/registry/registry-requests-table").then((m) => ({ default: m.RegistryRequestsTable })),
+);
 
 export default async function RegistryPage() {
-  const requests = await getRegistryRequests();
+  const [requests, profile] = await Promise.all([getRegistryRequests(), getSessionProfile()]);
+  const pendingCount = requests.filter((item) => item.status === "pending").length;
+  const canManage = profile ? hasPermission(profile.role, "registry_ops") : false;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Registry Operations"
-        subtitle={`${requests.length} active registry service requests`}
+        subtitle={`${requests.length} registry service requests · ${pendingCount} pending`}
       />
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Case number</TableHead>
-              <TableHead>Request type</TableHead>
-              <TableHead>Requester</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Submitted</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {requests.map((req) => (
-              <TableRow key={req.id}>
-                <TableCell className="font-medium">{req.caseNumber}</TableCell>
-                <TableCell className="text-sm">{req.requestType}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{req.requester}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={cn("capitalize", STATUS_STYLES[req.status])}>
-                    {req.status.replace("_", " ")}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {format(new Date(req.createdAt), "d MMM yyyy")}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {canManage ? (
+        <Suspense fallback={<FormSkeleton />}>
+          <DynamicRegistryRequestForm />
+        </Suspense>
+      ) : null}
+
+      <Suspense fallback={<TablePanelSkeleton rows={6} />}>
+        <DynamicRegistryRequestsTable requests={requests} canUpdate={canManage} />
+      </Suspense>
     </div>
+  );
+}
+
+/** Skeleton shown while the registry request form chunk loads. */
+function FormSkeleton() {
+  return (
+    <Card>
+      <CardContent className="space-y-4 p-6">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-4 w-64" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-10 rounded-lg" />
+        </div>
+        <Skeleton className="h-24 w-full rounded-lg" />
+        <Skeleton className="h-10 w-32 rounded-lg" />
+      </CardContent>
+    </Card>
   );
 }

@@ -1,4 +1,5 @@
 import type { UserProfile } from "@/types/user";
+import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/types/notification";
 
 export const MOCK_USERS: UserProfile[] = [
   {
@@ -9,6 +10,7 @@ export const MOCK_USERS: UserProfile[] = [
     department: "ICT",
     role: "admin",
     isActive: true,
+    notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES, weeklyDigest: true },
     createdAt: "2024-01-15T08:00:00Z",
     updatedAt: "2026-05-01T10:00:00Z",
   },
@@ -20,6 +22,7 @@ export const MOCK_USERS: UserProfile[] = [
     department: "ICT",
     role: "ict_officer",
     isActive: true,
+    notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES },
     createdAt: "2024-02-10T08:00:00Z",
     updatedAt: "2026-05-01T10:00:00Z",
   },
@@ -31,6 +34,7 @@ export const MOCK_USERS: UserProfile[] = [
     department: "Registry",
     role: "registry_clerk",
     isActive: true,
+    notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES, fileMovementAlerts: false },
     createdAt: "2024-03-05T08:00:00Z",
     updatedAt: "2026-05-01T10:00:00Z",
   },
@@ -42,6 +46,7 @@ export const MOCK_USERS: UserProfile[] = [
     department: "Archive",
     role: "archivist",
     isActive: true,
+    notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES },
     createdAt: "2024-04-01T08:00:00Z",
     updatedAt: "2026-05-01T10:00:00Z",
   },
@@ -53,6 +58,7 @@ export const MOCK_USERS: UserProfile[] = [
     department: "Registry",
     role: "deputy_registrar",
     isActive: true,
+    notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES },
     createdAt: "2024-05-20T08:00:00Z",
     updatedAt: "2026-05-01T10:00:00Z",
   },
@@ -64,6 +70,7 @@ export const MOCK_USERS: UserProfile[] = [
     department: "Judiciary",
     role: "judge",
     isActive: true,
+    notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES, overdueReminders: false },
     createdAt: "2024-06-01T08:00:00Z",
     updatedAt: "2026-05-01T10:00:00Z",
   },

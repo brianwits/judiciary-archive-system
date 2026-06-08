@@ -11,15 +11,22 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { SettingsForm } from "./settings-form";
+import { getNotificationPreferences } from "@/app/actions/settings";
 
 export default async function SettingsPage() {
   const profile = await getSessionProfile();
+  const notificationPrefs = await getNotificationPreferences();
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" subtitle="Account and system preferences" />
+      <PageHeader
+        title="Settings"
+        subtitle="Account, appearance, and system preferences"
+      />
 
       <div className="mx-auto max-w-2xl space-y-6">
+        {/* Profile */}
         <Card>
           <CardHeader>
             <CardTitle>Profile</CardTitle>
@@ -42,9 +49,23 @@ export default async function SettingsPage() {
                 {profile ? ROLE_LABELS[profile.role] : "—"}
               </Badge>
             </div>
+            <Separator />
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">PJ Number</span>
+              <span>{profile?.pjNumber ?? "—"}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Department</span>
+              <span>{profile?.department ?? "—"}</span>
+            </div>
           </CardContent>
         </Card>
 
+        {/* Interactive settings (password, appearance, notifications) */}
+        <SettingsForm initialNotificationPrefs={notificationPrefs} />
+
+        {/* System info */}
         <Card>
           <CardHeader>
             <CardTitle>System</CardTitle>
@@ -61,6 +82,11 @@ export default async function SettingsPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Application</span>
               <span>Judiciary Archive System</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Version</span>
+              <span>0.1.0</span>
             </div>
           </CardContent>
         </Card>

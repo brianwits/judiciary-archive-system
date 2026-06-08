@@ -43,3 +43,18 @@ next-env.d.ts
 
 # supabase local state
 supabase/.temp/
+
+# lighthouse cache dirs
+.lighthouse/
+tmp/lh-*
+
+# Stray Chrome lighthouse profiles created in project root by automation
+C:*
+
+# server logs
+server.log
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

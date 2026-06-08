@@ -11,6 +11,8 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const showDetails = process.env.NODE_ENV !== "production";
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -25,6 +27,11 @@ export default function AppError({
         <p className="max-w-md text-sm text-muted-foreground">
           The archive workspace could not load this view. Try again or return to another section.
         </p>
+        {showDetails && error.message ? (
+          <p className="max-w-2xl break-words rounded-md bg-muted px-3 py-2 font-mono text-left text-xs text-muted-foreground">
+            {error.message}
+          </p>
+        ) : null}
       </div>
       <Button type="button" onClick={reset}>
         Try again

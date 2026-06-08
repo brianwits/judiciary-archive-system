@@ -25,9 +25,12 @@ type RecentMovementsProps = {
   movements: FileMovement[];
 };
 
+const cardElevated =
+  "border-border/50 shadow-[var(--shadow-premium)] ring-1 ring-border/45 transition-shadow duration-300 hover:shadow-[0_14px_28px_-8px_rgb(0_0_0/0.12)]";
+
 export function RecentMovements({ movements }: RecentMovementsProps) {
   return (
-    <Card className="shadow-sm">
+    <Card className={cn("rounded-2xl", cardElevated)}>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle>Recent File Movements</CardTitle>
@@ -40,12 +43,22 @@ export function RecentMovements({ movements }: RecentMovementsProps) {
       </CardHeader>
       <CardContent>
         {movements.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No recent movements recorded.
-          </p>
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border/80 bg-muted/30 px-6 py-10 text-center">
+            <p className="max-w-sm text-sm text-muted-foreground">
+              No recent movements recorded. Open tracking to check files in and out, or browse cases.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Link href="/tracking" className={cn(buttonVariants({ variant: "default", size: "sm" }))}>
+                Open tracking
+              </Link>
+              <Link href="/cases" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                Browse cases
+              </Link>
+            </div>
+          </div>
         ) : (
-          <div className="rounded-lg border">
-            <Table>
+          <div className="overflow-x-auto rounded-xl border border-border/60">
+            <Table className="min-w-[36rem]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Case</TableHead>

@@ -2,6 +2,7 @@ export const AUDIT_ACTIONS = [
   "login",
   "case_created",
   "case_updated",
+  "case_deleted",
   "file_moved",
   "file_archived",
   "document_uploaded",
@@ -9,6 +10,7 @@ export const AUDIT_ACTIONS = [
   "role_changed",
   "file_checked_out",
   "file_checked_in",
+  "user_email_updated",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

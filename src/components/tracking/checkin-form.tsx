@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import { checkinFile } from "@/app/actions/tracking";
 import { AsyncButton } from "@/components/shared/async-button";
 import { FormError } from "@/components/shared/form-error";
@@ -39,7 +39,7 @@ export function CheckinForm({ openMovements }: CheckinFormProps) {
         return;
       }
       setMovementId("");
-      router.refresh();
+      startTransition(() => router.refresh());
     } catch {
       setError("Unable to check in the file. Please try again.");
     } finally {

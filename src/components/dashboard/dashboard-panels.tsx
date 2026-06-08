@@ -31,6 +31,9 @@ const ALERT_SEVERITY: Record<Alert["severity"], string> = {
   danger: "bg-destructive/15 text-destructive",
 };
 
+const cardElevated =
+  "border-border/50 shadow-[var(--shadow-premium)] ring-1 ring-border/45 transition-shadow duration-300 hover:shadow-[0_14px_28px_-8px_rgb(0_0_0/0.12)]";
+
 function PanelList({
   items,
   emptyMessage,
@@ -70,20 +73,32 @@ export function DashboardPanels({
   alerts,
 }: DashboardPanelsProps) {
   return (
-    <Card className="shadow-sm">
+    <Card className={cn("rounded-2xl", cardElevated)}>
       <CardHeader>
         <CardTitle>Communications & Workflow</CardTitle>
         <CardDescription>Approvals, notices, memos, broadcasts, and system alerts</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="approvals">
-          <TabsList className="mb-4 flex-wrap">
-            <TabsTrigger value="approvals">Approvals ({approvals.length})</TabsTrigger>
-            <TabsTrigger value="notices">Notices ({notices.length})</TabsTrigger>
-            <TabsTrigger value="memos">Memos ({memos.length})</TabsTrigger>
-            <TabsTrigger value="broadcasts">Broadcasts ({broadcasts.length})</TabsTrigger>
-            <TabsTrigger value="alerts">Alerts ({alerts.length})</TabsTrigger>
-          </TabsList>
+          <div className="-mx-1 mb-4 max-w-full overflow-x-auto overscroll-x-contain px-1 [scrollbar-width:thin] md:mx-0 md:px-0">
+            <TabsList className="inline-flex min-w-max flex-nowrap justify-start gap-1">
+              <TabsTrigger className="flex-none" value="approvals">
+                Approvals ({approvals.length})
+              </TabsTrigger>
+              <TabsTrigger className="flex-none" value="notices">
+                Notices ({notices.length})
+              </TabsTrigger>
+              <TabsTrigger className="flex-none" value="memos">
+                Memos ({memos.length})
+              </TabsTrigger>
+              <TabsTrigger className="flex-none" value="broadcasts">
+                Broadcasts ({broadcasts.length})
+              </TabsTrigger>
+              <TabsTrigger className="flex-none" value="alerts">
+                Alerts ({alerts.length})
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="approvals">
             <PanelList

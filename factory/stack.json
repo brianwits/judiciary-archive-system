@@ -1,0 +1,9 @@
+{
+  "framework": "Next.js 16 App Router",
+  "language": "TypeScript",
+  "database": "Supabase (PostgreSQL)",
+  "orm": "Supabase JS client + SQL migrations",
+  "css": "Tailwind CSS 4",
+  "testRunner": "none configured",
+  "deployment": "Vercel"
+}

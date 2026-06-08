@@ -1,12 +1,18 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { CaseFilters } from "@/components/cases/case-filters";
-import { CasesDataTable } from "@/components/cases/cases-data-table";
 import { PageHeader } from "@/components/layout/page-header";
+import { ListPagination } from "@/components/shared/list-pagination";
+import { TablePanelSkeleton } from "@/components/shared/page-skeletons";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCases } from "@/lib/data";
+import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "@/contracts/queries";
+import { getSessionProfile } from "@/lib/auth";
+import { getCasesPage, getDocumentsForCases } from "@/lib/data";
 import type { CaseFilters as CaseFiltersType, CaseStatus, CaseType } from "@/types/case";
+
+const DynamicCasesPageClient = dynamic(() => import("@/components/cases/cases-page-client").then((m) => ({ default: m.CasesPageClient })));
 
 type CasesPageProps = {
   searchParams: Promise<{
@@ -14,25 +20,42 @@ type CasesPageProps = {
     caseType?: string;
     year?: string;
     status?: string;
+    page?: string;
   }>;
 };
 
 export default async function CasesPage({ searchParams }: CasesPageProps) {
   const params = await searchParams;
   const filters: CaseFiltersType = {};
+  const page = Math.max(Number(params.page) || DEFAULT_PAGE, 1);
 
   if (params.q) filters.q = params.q;
   if (params.caseType) filters.caseType = params.caseType as CaseType;
   if (params.year) filters.year = Number(params.year);
   if (params.status) filters.status = params.status as CaseStatus;
 
-  const cases = await getCases(filters);
+  const [result, profile] = await Promise.all([
+    getCasesPage(filters, { page, pageSize: DEFAULT_PAGE_SIZE }),
+    getSessionProfile(),
+  ]);
+
+  // Batch-load documents for all cases on this page in a single round-trip
+  // (eliminates N+1 doc fetches when showing document counts per case)
+  const caseIds = result.items.map((c) => c.id);
+  const docCountByCaseId: Record<string, number> =
+    caseIds.length > 0
+      ? Object.fromEntries(
+          Array.from((await getDocumentsForCases(caseIds)).entries()).map(
+            ([id, docs]) => [id, docs.length],
+          ),
+        )
+      : {};
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Active Cases"
-        subtitle={`${cases.length} case file${cases.length === 1 ? "" : "s"} in the archive`}
+        subtitle={`${result.total.toLocaleString()} case file${result.total === 1 ? "" : "s"} in the archive`}
         actions={
           <Link href="/cases/new" className={buttonVariants({ size: "sm" })}>
             Register new case
@@ -44,7 +67,26 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
         <CaseFilters />
       </Suspense>
 
-      <CasesDataTable cases={cases} />
+      <Suspense fallback={<TablePanelSkeleton rows={8} />}>
+        <DynamicCasesPageClient
+          cases={result.items}
+          docCountByCaseId={docCountByCaseId}
+          role={profile!.role}
+        />
+      </Suspense>
+
+      <ListPagination
+        basePath="/cases"
+        page={result.page}
+        pageSize={result.pageSize}
+        total={result.total}
+        searchParams={{
+          q: params.q,
+          caseType: params.caseType,
+          year: params.year,
+          status: params.status,
+        }}
+      />
     </div>
   );
 }

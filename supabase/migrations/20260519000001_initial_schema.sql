@@ -144,44 +144,6 @@ CREATE POLICY documents_delete_admin ON public.documents
   TO authenticated
   USING (public.get_user_role() = 'admin');
 
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'case-documents',
-  'case-documents',
-  false,
-  26214400,
-  ARRAY['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
-);
-
-CREATE POLICY case_documents_select ON storage.objects
-  FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'case-documents');
-
-CREATE POLICY case_documents_insert ON storage.objects
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    bucket_id = 'case-documents'
-    AND public.get_user_role() IN ('staff', 'admin')
-  );
-
-CREATE POLICY case_documents_update ON storage.objects
-  FOR UPDATE
-  TO authenticated
-  USING (
-    bucket_id = 'case-documents'
-    AND public.get_user_role() IN ('staff', 'admin')
-  );
-
-CREATE POLICY case_documents_delete ON storage.objects
-  FOR DELETE
-  TO authenticated
-  USING (
-    bucket_id = 'case-documents'
-    AND public.get_user_role() = 'admin'
-  );
-
 CREATE OR REPLACE FUNCTION public.search_cases(search_query text)
 RETURNS SETOF public.cases
 LANGUAGE sql

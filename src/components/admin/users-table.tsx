@@ -2,7 +2,7 @@
 
 import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { startTransition, useState, type FormEvent } from "react";
 import { updateUserDetails, updateUserRole } from "@/app/actions/users";
 import { FormError } from "@/components/shared/form-error";
 import { AsyncButton } from "@/components/shared/async-button";
@@ -35,26 +35,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProfileRow, UserRole } from "@/types/database";
+import type { ProfileListItem } from "@/contracts/users";
+import type { CourtUserRole } from "@/types/database";
+import { ROLE_LABELS, USER_ROLES } from "@/types/roles";
 
-const ROLE_OPTIONS: Array<{ value: UserRole; label: string }> = [
-  { value: "admin", label: "Admin" },
-  { value: "staff", label: "Staff" },
-  { value: "readonly", label: "Read-only" },
-];
+const ROLE_OPTIONS = USER_ROLES.map((value) => ({
+  value,
+  label: ROLE_LABELS[value],
+}));
 
-export function UsersTable({ profiles }: { profiles: ProfileRow[] }) {
+export function UsersTable({ profiles }: { profiles: ProfileListItem[] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  async function handleRoleChange(userId: string, role: UserRole) {
+  async function handleRoleChange(userId: string, role: CourtUserRole) {
     setPendingId(userId);
     setError(null);
     try {
       const result = await updateUserRole(userId, role);
       if (!result.ok) setError(result.error.message);
-      else router.refresh();
+      else startTransition(() => router.refresh());
     } catch {
       setError("Unable to update the user role. Please try again.");
     } finally {
@@ -69,12 +70,13 @@ export function UsersTable({ profiles }: { profiles: ProfileRow[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>PJ Number</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-label">Name</TableHead>
+              <TableHead className="text-label">Email</TableHead>
+              <TableHead className="text-label">PJ Number</TableHead>
+              <TableHead className="text-label">Department</TableHead>
+              <TableHead className="text-label">Role</TableHead>
+              <TableHead className="text-label">Joined</TableHead>
+              <TableHead className="text-right text-label">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -83,6 +85,9 @@ export function UsersTable({ profiles }: { profiles: ProfileRow[] }) {
                 <TableCell className="font-medium">
                   {profile.full_name ?? "—"}
                 </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {profile.email ?? "—"}
+                </TableCell>
                 <TableCell>{profile.pj_number ?? "—"}</TableCell>
                 <TableCell>{profile.department ?? "—"}</TableCell>
                 <TableCell>
@@ -90,7 +95,7 @@ export function UsersTable({ profiles }: { profiles: ProfileRow[] }) {
                     value={profile.role}
                     disabled={pendingId === profile.id}
                     onValueChange={(value) =>
-                      handleRoleChange(profile.id, value as UserRole)
+                      handleRoleChange(profile.id, value as CourtUserRole)
                     }
                   >
                     <SelectTrigger className="w-36">
@@ -135,14 +140,14 @@ function EditProfileDialog({
   onError,
   onUpdated,
 }: {
-  profile: ProfileRow;
+  profile: ProfileListItem;
   pending: boolean;
   onPendingChange: (id: string | null) => void;
   onError: (message: string | null) => void;
   onUpdated: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<UserRole>(profile.role);
+  const [role, setRole] = useState<CourtUserRole>(profile.role);
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) setRole(profile.role);
@@ -163,7 +168,7 @@ function EditProfileDialog({
         return;
       }
       setOpen(false);
-      onUpdated();
+      startTransition(() => onUpdated());
     } catch {
       onError("Unable to update the user details. Please try again.");
     } finally {
@@ -202,6 +207,19 @@ function EditProfileDialog({
                 required
               />
             </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor={`email-${profile.id}`}>
+                Email <span className="text-muted-foreground">(auth)</span>
+              </Label>
+              <Input
+                id={`email-${profile.id}`}
+                name="email"
+                type="email"
+                defaultValue={profile.email ?? ""}
+                placeholder="user@court.go.ke"
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor={`pjNumber-${profile.id}`}>PJ Number</Label>
               <Input
@@ -225,7 +243,7 @@ function EditProfileDialog({
               <Select
                 value={role}
                 disabled={pending}
-                onValueChange={(value) => setRole(value as UserRole)}
+                onValueChange={(value) => setRole(value as CourtUserRole)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />

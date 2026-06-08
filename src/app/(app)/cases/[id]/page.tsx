@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  getAuditLogs,
+  getAuditLogsForCase,
   getCaseById,
   getDocuments,
   getMovementsByCase,
@@ -42,18 +42,11 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     notFound();
   }
 
-  const [documents, movements, allAuditLogs] = await Promise.all([
+  const [documents, movements, auditLogs] = await Promise.all([
     getDocuments(id),
     getMovementsByCase(id),
-    getAuditLogs(),
+    getAuditLogsForCase(id, caseFile.caseNumber),
   ]);
-
-  const auditLogs = allAuditLogs.filter(
-    (log) =>
-      log.entityId === id ||
-      log.metadata?.caseNumber === caseFile.caseNumber ||
-      movements.some((m) => m.id === log.entityId),
-  );
 
   return (
     <div className="space-y-6">

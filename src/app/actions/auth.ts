@@ -1,12 +1,24 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { actionError, actionOk } from "@/contracts/result";
 import { mockSignIn, mockSignOut } from "@/lib/auth";
 import { isMockDataEnabled } from "@/lib/config";
+import { allowRateLimited, forwardedOrRealIp } from "@/lib/rate-limit";
+import { ensureProfileRowForCurrentUser } from "@/lib/supabase/fetch-profile";
 import { createClient } from "@/lib/supabase/server";
 
 export async function signIn(formData: FormData) {
+  const headerList = await headers();
+  const clientIp = forwardedOrRealIp(
+    headerList.get("x-forwarded-for"),
+    headerList.get("x-real-ip"),
+  );
+  if (!allowRateLimited(`sign-in:${clientIp}`, { max: 30, windowMs: 60_000 })) {
+    return actionError("TOO_MANY_REQUESTS", "Too many sign-in attempts. Try again shortly.");
+  }
+
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
@@ -23,6 +35,20 @@ export async function signIn(formData: FormData) {
 
   if (error) {
     return actionError("UNAUTHORIZED", error.message);
+  }
+
+  const profile = await ensureProfileRowForCurrentUser(supabase);
+  if (!profile) {
+    await supabase.auth.signOut();
+    return actionError(
+      "UNAUTHORIZED",
+      "Unable to link this account to a staff profile. Contact an administrator.",
+    );
+  }
+
+  if (!profile.is_active) {
+    await supabase.auth.signOut();
+    return actionError("UNAUTHORIZED", "This account has been deactivated.");
   }
 
   return actionOk();

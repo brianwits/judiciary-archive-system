@@ -1,9 +1,12 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { fetchProfileRowForUser } from "@/lib/supabase/fetch-profile";
 import { isMockDataEnabled } from "@/lib/config";
 import { mockStore } from "@/lib/data/mock-store";
 import { DEMO_PASSWORD, MOCK_USERS } from "@/data/seed/users";
-import { mapDbRoleToAppRole } from "@/contracts/users";
+import { parseNotificationPreferences } from "@/types/notification";
+import { mapDbRoleToAppRole } from "@/lib/roles/map-db-role";
 import {
   canEditCases as canEditCasesPerm,
   canManageUsers,
@@ -17,7 +20,7 @@ export type SessionProfile = UserProfile;
 
 const MOCK_SESSION_COOKIE = "mock_session_user_id";
 
-export async function getSessionProfile(): Promise<SessionProfile | null> {
+export const getSessionProfile = cache(async (): Promise<SessionProfile | null> => {
   if (isMockDataEnabled()) {
     const cookieStore = await cookies();
     const userId = cookieStore.get(MOCK_SESSION_COOKIE)?.value;
@@ -32,12 +35,7 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
 
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
+  const profile = await fetchProfileRowForUser(supabase, user.id);
   if (!profile) return null;
 
   const role = mapDbRoleToAppRole(profile.role as string);
@@ -49,11 +47,12 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
     pjNumber: profile.pj_number ?? null,
     department: profile.department ?? null,
     role,
-    isActive: true,
+    isActive: profile.is_active ?? true,
+    notificationPreferences: parseNotificationPreferences(profile.notification_preferences),
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
   };
-}
+});
 
 export async function mockSignIn(email: string, password: string): Promise<{ error?: string }> {
   const user = MOCK_USERS.find((u) => u.email === email);

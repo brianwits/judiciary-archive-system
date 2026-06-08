@@ -1,17 +1,34 @@
+import { Suspense } from "react";
 import { ArchiveStorageMap } from "@/components/dashboard/archive-storage-map";
 import { PageHeader } from "@/components/layout/page-header";
-import { getRoomSummaries } from "@/lib/data";
+import { ChartPanelSkeleton } from "@/components/shared/page-skeletons";
+import { getArchiveStoredCases, getRoomSummaries } from "@/lib/data";
 
 export default async function ArchivePage() {
-  const rooms = await getRoomSummaries();
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Archive Storage"
-        subtitle="Physical archive rooms and occupancy overview"
+        subtitle="Stored case inventory with hierarchy paths plus room occupancy"
       />
-      <ArchiveStorageMap rooms={rooms} />
+      <Suspense fallback={<ChartPanelSkeleton tall />}>
+        <ArchivePageContent />
+      </Suspense>
     </div>
+  );
+}
+
+async function ArchivePageContent() {
+  const [rooms, archiveInventory] = await Promise.all([
+    getRoomSummaries(),
+    getArchiveStoredCases({ limit: 500 }),
+  ]);
+
+  return (
+    <ArchiveStorageMap
+      rooms={rooms}
+      storedCases={archiveInventory.items}
+      matchingTotal={archiveInventory.total}
+    />
   );
 }
