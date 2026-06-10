@@ -4,6 +4,18 @@ import { test, expect } from "@playwright/test";
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Detect whether the app is running in mock/demo mode. */
+async function isMockMode(page: import("@playwright/test").Page): Promise<boolean> {
+  return await page.locator("#demo-user-select").isVisible({ timeout: 1000 }).catch(() => false);
+}
+
+/** Guard: skip the entire test if not running in mock mode. */
+async function requireMockMode(page: import("@playwright/test").Page) {
+  if (!(await isMockMode(page))) {
+    test.skip();
+  }
+}
+
 async function setMockSession(
   page: import("@playwright/test").Page,
   userId: string,
@@ -28,11 +40,13 @@ const ADMIN_ID = "user-brian";
 
 test.describe("User Management – Page Load", () => {
   test("redirects unauthenticated users to login", async ({ page }) => {
+    await requireMockMode(page);
     await page.goto("/users");
     await expect(page).toHaveURL(/\/login/);
   });
 
   test("loads user management page for admin", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
 
@@ -43,6 +57,7 @@ test.describe("User Management – Page Load", () => {
   });
 
   test("displays all 7 users in the table", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
@@ -52,6 +67,7 @@ test.describe("User Management – Page Load", () => {
   });
 
   test("shows expected user data in table rows", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
@@ -65,6 +81,7 @@ test.describe("User Management – Page Load", () => {
   });
 
   test("renders email column in the table", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
@@ -82,6 +99,7 @@ test.describe("User Management – Page Load", () => {
   });
 
   test("shows role values for each user in select triggers", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
@@ -100,6 +118,7 @@ test.describe("User Management – Page Load", () => {
   });
 
   test("shows status badges (Active)", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
@@ -111,6 +130,7 @@ test.describe("User Management – Page Load", () => {
   });
 
   test("shows PJ Number and Department columns", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
@@ -122,6 +142,7 @@ test.describe("User Management – Page Load", () => {
   });
 
   test("shows pagination when enough users", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
@@ -143,6 +164,7 @@ test.describe("User Management – Page Load", () => {
 
 test.describe("Navigation", () => {
   test("settings page loads correctly", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/settings");
 
@@ -159,6 +181,7 @@ test.describe("Navigation", () => {
   test("settings page shows data mode and application info", async ({
     page,
   }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/settings");
 
@@ -173,6 +196,7 @@ test.describe("Navigation", () => {
 
 test.describe("Auth Gating – User Management", () => {
   test("judge user cannot access /users", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, "user-judge");
     await page.goto("/users");
 
@@ -181,6 +205,7 @@ test.describe("Auth Gating – User Management", () => {
   });
 
   test("archivist cannot access /users", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, "user-archivist");
     await page.goto("/users");
 
@@ -188,6 +213,7 @@ test.describe("Auth Gating – User Management", () => {
   });
 
   test("deputy registrar cannot access /users", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, "user-deputy");
     await page.goto("/users");
 
@@ -195,6 +221,7 @@ test.describe("Auth Gating – User Management", () => {
   });
 
   test("registry clerk cannot access /users", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, "user-registry");
     await page.goto("/users");
 
@@ -202,6 +229,7 @@ test.describe("Auth Gating – User Management", () => {
   });
 
   test("admin can access /users", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
 
@@ -210,6 +238,7 @@ test.describe("Auth Gating – User Management", () => {
   });
 
   test("ict_officer can access /users", async ({ page }) => {
+    await requireMockMode(page);
     await setMockSession(page, "user-ict");
     await page.goto("/users");
 

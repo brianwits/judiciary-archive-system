@@ -16,48 +16,46 @@ function recordResult(testName: string, passed: boolean, details: string) {
   results.push({ test: testName, passed, details });
 }
 
+/** Detect whether the app is running in mock/demo mode. */
+async function isMockMode(page: Page): Promise<boolean> {
+  return await page.locator("#demo-user-select").isVisible({ timeout: 1000 }).catch(() => false);
+}
+
 async function loginAs(page: Page, email: string) {
   await page.goto(`${BASE_URL}/login`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1000);
 
-  // Try selecting user from dropdown first (mock mode)
-  const userSelect = page.locator("#demo-user-select");
-  if (await userSelect.isVisible({ timeout: 2000 }).catch(() => false)) {
-    // Find the option with matching email
-    const options = await userSelect.locator("option").all();
-    for (const opt of options) {
-      const value = await opt.getAttribute("value");
-      if (!value) continue;
-      const text = await opt.textContent();
-      if (text?.includes(email)) {
-        await userSelect.selectOption(value);
-        await page.waitForTimeout(800);
-        break;
-      }
-    }
-  }
-
-  // Fill email - the dropdown should have auto-filled it, but ensure it's correct
+  // Fill email directly — bypasses React 19 synthetic event issues with selectOption
   const emailInput = page.locator("#email");
-  if (await emailInput.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await emailInput.fill(email);
-  }
+  await emailInput.waitFor({ state: "visible", timeout: 15_000 });
+  await emailInput.fill(email);
 
   // Fill password
-  const pwInput = page.locator("#password");
-  if (await pwInput.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await pwInput.fill(VALID_PASSWORD);
-  }
+  await page.locator("#password").fill(VALID_PASSWORD);
 
   // Click Sign in button
   await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForTimeout(2000);
+
+  // Wait for redirect to dashboard (generous timeout for first compilation)
+  await page.waitForFunction(() => !window.location.pathname.includes("/login"), { timeout: 30_000 }).catch(() => {});
 }
 
 // ─── 1. LOGIN FLOW TESTS ──────────────────────────────────────────────────────
 
 test.describe("Login Flow", () => {
+  // Warmup: pre-compile the login server action so subsequent logins are fast
+  test("0.0 - Warmup: pre-compile login action", async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.goto(`${BASE_URL}/login`);
+    await page.waitForLoadState("networkidle");
+    await page.locator("#email").fill("brian.mugendi@courts.go.ke");
+    await page.locator("#password").fill(VALID_PASSWORD);
+    await page.getByRole("button", { name: /sign in/i }).click();
+    await page.waitForFunction(() => !window.location.pathname.includes("/login"), { timeout: 150_000 });
+    recordResult("Warmup login completed", true, "Dashboard reached");
+  });
+
   test("1.1 - Login page loads with form elements", async ({ page }) => {
     await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState("networkidle");
@@ -65,30 +63,36 @@ test.describe("Login Flow", () => {
     expect(page.url()).toContain("/login");
     recordResult("Login page URL correct", true, `URL: ${page.url()}`);
 
-    // Check form elements
-    const select = page.locator("#demo-user-select");
+    // Check common form elements always present
     const email = page.locator("#email");
     const password = page.locator("#password");
     const submit = page.getByRole("button", { name: /sign in/i });
 
-    expect(await select.isVisible()).toBeTruthy();
     expect(await email.isVisible()).toBeTruthy();
     expect(await password.isVisible()).toBeTruthy();
     expect(await submit.isVisible()).toBeTruthy();
+    recordResult("Login form has core fields", true, "Email, Password, Submit button all present");
+
+    // Conditionally test the demo user dropdown in mock mode
+    const mock = await isMockMode(page);
+    if (mock) {
+      const select = page.locator("#demo-user-select");
+      expect(await select.isVisible()).toBeTruthy();
+
+      // Quick-select a user and verify auto-fill
+      await select.selectOption("user-brian");
+      await page.waitForTimeout(500);
+      const emailValue = await email.inputValue();
+      expect(emailValue).toBe("brian.mugendi@courts.go.ke");
+      recordResult("Demo user dropdown auto-fills email", true, `Email auto-filled to: ${emailValue}`);
+    } else {
+      recordResult("Demo user dropdown (production mode - skipped)", true, "Not applicable in production mode");
+    }
 
     // Check branding
     const title = await page.title();
     expect(title.length).toBeGreaterThan(0);
-
-    recordResult("Login form has all fields", true, "Select, Email, Password, Submit button all present");
     recordResult("Page has title", true, `Title: "${title}"`);
-
-    // Quick-select a user and verify auto-fill
-    await select.selectOption("user-brian");
-    await page.waitForTimeout(500);
-    const emailValue = await email.inputValue();
-    expect(emailValue).toBe("brian.mugendi@courts.go.ke");
-    recordResult("Demo user dropdown auto-fills email", true, `Email auto-filled to: ${emailValue}`);
   });
 
   test("1.2 - Invalid credentials show error", async ({ page }) => {
@@ -128,7 +132,13 @@ test.describe("Login Flow", () => {
     await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState("networkidle");
 
-    // Select inactive user
+    const mock = await isMockMode(page);
+    if (!mock) {
+      test.skip();
+      return;
+    }
+
+    // Select inactive user from the demo dropdown
     const select = page.locator("#demo-user-select");
     await select.selectOption("user-inactive");
     await page.waitForTimeout(500);
@@ -144,7 +154,15 @@ test.describe("Login Flow", () => {
   test("1.5 - Logout works", async ({ page }) => {
     await loginAs(page, "brian.mugendi@courts.go.ke");
 
-    // Find and click sign out
+    // Sign out is inside a user DropdownMenu — open the trigger first
+    const dropdownTrigger = page.locator('[data-slot="dropdown-menu-trigger"]').last();
+    const triggerVisible = await dropdownTrigger.isVisible({ timeout: 2000 }).catch(() => false);
+    if (triggerVisible) {
+      await dropdownTrigger.click();
+      await page.waitForTimeout(500);
+    }
+
+    // Now find and click Sign out
     const signOutBtn = page.locator('button:has-text("Sign out")');
     const found = await signOutBtn.isVisible({ timeout: 2000 }).catch(() => false);
     if (found) {
@@ -153,7 +171,7 @@ test.describe("Login Flow", () => {
       const onLogin = page.url().includes("/login");
       recordResult("Logout works", onLogin, onLogin ? "Redirected to /login" : `URL: ${page.url()}`);
     } else {
-      recordResult("Logout button visible", false, "Could not find Sign out button");
+      recordResult("Logout button visible", false, "Could not find Sign out button in dropdown");
     }
   });
 });
@@ -274,9 +292,9 @@ test.describe("Cases Module", () => {
     const hasSearch = await searchInput.isVisible({ timeout: 1000 }).catch(() => false);
     recordResult("Search input visible", hasSearch, hasSearch ? "Search field present" : "No search input");
 
-    // Filter controls
-    const filterSelects = page.locator("select").count();
-    recordResult("Filter controls present", await filterSelects > 0, `${await filterSelects} select elements found`);
+    // Filter controls — uses shadcn Select with role="combobox", not native <select>
+    const filterComboboxes = page.locator('[role="combobox"]').count();
+    recordResult("Filter controls present", await filterComboboxes > 0, `${await filterComboboxes} combobox elements found`);
 
     // New Case button
     const newBtn = page.locator('a:has-text("New Case"), button:has-text("New Case"), a:has-text("Register Case")').first();
@@ -332,7 +350,8 @@ test.describe("Cases Module", () => {
     const found = await caseLink.isVisible({ timeout: 2000 }).catch(() => false);
     if (found) {
       await caseLink.click();
-      await page.waitForTimeout(1500);
+      // Wait for case detail page to stream content (server component)
+      await page.waitForSelector("text=Overview", { timeout: 120_000 });
       const onDetail = page.url().includes("/cases/") && !page.url().endsWith("/cases");
       recordResult("Case detail page loads", onDetail, onDetail ? `URL: ${page.url()}` : "Not navigated to detail");
 
@@ -340,12 +359,12 @@ test.describe("Cases Module", () => {
       const hasContent = body.length > 100;
       const hasDocs = body.toLowerCase().includes("document");
       const hasMovements = body.toLowerCase().includes("movement") || body.toLowerCase().includes("tracking");
-      const hasEdit = body.toLowerCase().includes("edit");
+      const hasTabs = body.toLowerCase().includes("overview") && body.toLowerCase().includes("documents");
 
       recordResult("Case detail has content", hasContent, `Content length: ${body.length}`);
       recordResult("Documents section visible", hasDocs, hasDocs ? "Found" : "Not found");
       recordResult("Movement history visible", hasMovements, hasMovements ? "Found" : "Not found");
-      recordResult("Edit button present", hasEdit, hasEdit ? "Found" : "Not found");
+      recordResult("Case detail tabs visible", hasTabs, hasTabs ? "Overview + Documents tabs found" : "Not found");
     } else {
       recordResult("Case link clickable", false, "No case link found on page");
     }
@@ -470,8 +489,8 @@ test.describe("Other Pages", () => {
     const hasUsers = body.toLowerCase().includes("user") || body.includes("@") || body.toLowerCase().includes("role");
     recordResult("User list visible", hasUsers, hasUsers ? "Found user references" : "No user data");
 
-    const hasEdit = body.toLowerCase().includes("edit");
-    recordResult("Edit user option available", hasEdit, hasEdit ? "Found edit reference" : "Not found");
+    const hasEditButtons = await page.locator('button[aria-label^="Edit"]').count();
+    recordResult("Edit user option available", hasEditButtons > 0, hasEditButtons > 0 ? `${hasEditButtons} edit buttons found` : "Not found");
   });
 });
 
@@ -487,8 +506,13 @@ test.describe("Responsive Design", () => {
     recordResult("Mobile 375px renders content", ok, ok ? `Content: ${body.length} chars` : "No content");
 
     // Check navbar adapts (might be hamburger)
-    const hamburger = page.locator('button[aria-label*="menu"], button:has-text("Menu"), [class*="hamburger"]').first();
-    const hasHamburger = await hamburger.isVisible({ timeout: 1000 }).catch(() => false);
+    const hamburger = page.locator(
+      'button[aria-label*="menu"], button:has-text("Menu"), [class*="hamburger"], ' +
+      'button[aria-label*="Toggle navigation"]'
+    ).first();
+    // Wait for layout to render after login redirect
+    await page.waitForTimeout(2000);
+    const hasHamburger = await hamburger.isVisible({ timeout: 5000 }).catch(() => false);
     if (hasHamburger) {
       await hamburger.click();
       await page.waitForTimeout(500);

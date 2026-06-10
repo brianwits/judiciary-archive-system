@@ -6,6 +6,11 @@ const DEMO_PASSWORD = "demo1234";
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Detect whether the app is running in mock/demo mode. */
+async function isMockMode(page: import("@playwright/test").Page): Promise<boolean> {
+  return await page.locator("#demo-user-select").isVisible({ timeout: 1000 }).catch(() => false);
+}
+
 /** Fill credentials and submit the login form. */
 async function loginAs(
   page: import("@playwright/test").Page,
@@ -39,6 +44,11 @@ test.describe("Login Page – Page Load", () => {
   test("shows demo mode description in mock mode", async ({ page }) => {
     await page.goto("/login");
     await page.waitForSelector("#email", { timeout: 15_000 });
+    const mock = await isMockMode(page);
+    if (!mock) {
+      test.skip();
+      return;
+    }
     await expect(
       page.getByText(/Demo mode.*select a user or enter credentials/),
     ).toBeVisible();
@@ -46,7 +56,13 @@ test.describe("Login Page – Page Load", () => {
 
   test("demo user dropdown is visible", async ({ page }) => {
     await page.goto("/login");
-    await page.waitForSelector("#demo-user-select", { timeout: 15_000 });
+    await page.waitForSelector("#email", { timeout: 15_000 });
+    const mock = await isMockMode(page);
+    if (!mock) {
+      test.skip();
+      return;
+    }
+    await page.waitForSelector("#demo-user-select", { timeout: 5_000 });
     await expect(page.locator("#demo-user-select")).toBeVisible();
   });
 
@@ -55,9 +71,15 @@ test.describe("Login Page – Page Load", () => {
   }) => {
     await page.goto("/login");
     await page.waitForSelector("#email", { timeout: 15_000 });
-    await expect(page.locator("#email")).toHaveValue(
-      "brian.mugendi@courts.go.ke",
-    );
+    const mock = await isMockMode(page);
+    if (mock) {
+      await expect(page.locator("#email")).toHaveValue(
+        "brian.mugendi@courts.go.ke",
+      );
+    } else {
+      // In production mode, email starts empty
+      await expect(page.locator("#email")).toHaveValue("");
+    }
   });
 
   test("password field is pre-filled with demo password", async ({
@@ -65,7 +87,13 @@ test.describe("Login Page – Page Load", () => {
   }) => {
     await page.goto("/login");
     await page.waitForSelector("#password", { timeout: 15_000 });
-    await expect(page.locator("#password")).toHaveValue(DEMO_PASSWORD);
+    const mock = await isMockMode(page);
+    if (mock) {
+      await expect(page.locator("#password")).toHaveValue(DEMO_PASSWORD);
+    } else {
+      // In production mode, password starts empty
+      await expect(page.locator("#password")).toHaveValue("");
+    }
   });
 
   test("password field has type password (masked)", async ({ page }) => {
@@ -90,7 +118,13 @@ test.describe("Login Page – Page Load", () => {
 test.describe("Login Page – Demo User Selection", () => {
   test("demo user dropdown lists all 7 mock users", async ({ page }) => {
     await page.goto("/login");
-    await page.waitForSelector("#demo-user-select", { timeout: 15_000 });
+    await page.waitForSelector("#email", { timeout: 15_000 });
+    const mock = await isMockMode(page);
+    if (!mock) {
+      test.skip();
+      return;
+    }
+    await page.waitForSelector("#demo-user-select", { timeout: 5_000 });
     const options = page.locator("#demo-user-select option");
     // 1 placeholder + 7 users (inactive user added) = 8 options
     await expect(options).toHaveCount(8);
@@ -98,7 +132,13 @@ test.describe("Login Page – Demo User Selection", () => {
 
   test("user can fill custom email after using dropdown selection", async ({ page }) => {
     await page.goto("/login");
-    await page.waitForSelector("#demo-user-select", { timeout: 15_000 });
+    await page.waitForSelector("#email", { timeout: 15_000 });
+    const mock = await isMockMode(page);
+    if (!mock) {
+      test.skip();
+      return;
+    }
+    await page.waitForSelector("#demo-user-select", { timeout: 5_000 });
 
     // First select from the dropdown (uses evaluate to work with React 19 event system)
     await page.evaluate(() => {
@@ -128,9 +168,17 @@ test.describe.serial("Login — warmup + form submissions", () => {
   test("warmup — login once to compile dashboard", async ({ page }) => {
     test.setTimeout(360_000);
     await page.goto("/login");
-    await page.waitForSelector("button[type=submit]", { timeout: 15_000 });
+    // Must fill credentials before clicking Sign In — in production mode fields
+    // start empty (vs mock mode where they're pre-filled from the demo dropdown).
+    await page.waitForSelector("#email", { timeout: 15_000 });
+    await page.locator("#email").fill("brian.mugendi@courts.go.ke");
+    await page.locator("#password").fill(DEMO_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/^\/(?!login)/, { timeout: 300_000 });
+    // Use waitForFunction to check URL change without waiting for page load compilation
+    await page.waitForFunction(
+      () => !window.location.pathname.includes("/login"),
+      { timeout: 300_000 },
+    );
   });
 
   test("valid login redirects to dashboard", async ({ page }) => {

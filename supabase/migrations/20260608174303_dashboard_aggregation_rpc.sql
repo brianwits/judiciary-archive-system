@@ -28,7 +28,7 @@ AS $$
         'title', 'Overdue Return',
         'message', COALESCE(c.case_number, 'Case') || ' overdue since ' || fm.expected_return_date::text,
         'severity', 'danger',
-        'createdAt', fm.updated_at
+        'createdAt', COALESCE(fm.updated_at, now())
       )
       ORDER BY fm.expected_return_date ASC
     ) AS overdue_alerts
@@ -148,9 +148,12 @@ AS $$
     'approvals',  COALESCE(apd.items, '[]'::jsonb),
     'alerts',     COALESCE(
                     (SELECT jsonb_agg(el) FROM (
-                      SELECT ad2.overdue_alerts AS el FROM alerts_data ad2
+                      SELECT jsonb_array_elements(COALESCE(ad.overdue_alerts, '[]'::jsonb)) AS el
+                      FROM alerts_data ad
                       UNION ALL
-                      SELECT jsonb_build_array(ma.alert) FROM missing_alert ma WHERE ma.alert IS NOT NULL
+                      SELECT ma.alert AS el
+                      FROM missing_alert ma
+                      WHERE ma.alert IS NOT NULL
                     ) sub),
                     '[]'::jsonb
                   )

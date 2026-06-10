@@ -39,6 +39,14 @@ import type { ProfileListItem } from "@/contracts/users";
 import type { CourtUserRole } from "@/types/database";
 import { ROLE_LABELS, USER_ROLES } from "@/types/roles";
 
+/** Format a date string safely — returns a fallback if the value is empty or invalid. */
+function safeFormatDate(value: string | undefined | null): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString();
+}
+
 const ROLE_OPTIONS = USER_ROLES.map((value) => ({
   value,
   label: ROLE_LABELS[value],
@@ -112,7 +120,7 @@ export function UsersTable({ profiles }: { profiles: ProfileListItem[] }) {
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {new Date(profile.created_at).toLocaleDateString()}
+                    {safeFormatDate(profile.created_at)}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">

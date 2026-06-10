@@ -19,6 +19,14 @@ import {
 } from "@/components/ui/table";
 import type { DocumentRow } from "@/types/database";
 
+/** Format a date string safely — returns a fallback if the value is empty or invalid. */
+function safeFormatDate(value: string | undefined | null): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString();
+}
+
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -100,7 +108,7 @@ export function DocumentList({
               <TableCell>{doc.mime_type}</TableCell>
               <TableCell>{formatSize(doc.file_size)}</TableCell>
               <TableCell>
-                {new Date(doc.created_at).toLocaleDateString()}
+                {safeFormatDate(doc.created_at)}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">

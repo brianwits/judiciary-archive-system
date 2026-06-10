@@ -1,5 +1,13 @@
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+
+/** Format a date string safely — returns a dash if the value is empty or invalid. */
+function safeFormatDate(value: string | undefined | null, fmt: string): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return format(d, fmt);
+}
 import {
   Card,
   CardContent,
@@ -107,7 +115,7 @@ export function DashboardPanels({
                 id: a.id,
                 title: a.title,
                 subtitle: `${a.type} • ${a.requester}`,
-                meta: format(new Date(a.createdAt), "d MMM yyyy"),
+                meta: safeFormatDate(a.createdAt, "d MMM yyyy"),
                 badge: (
                   <Badge variant="outline" className={cn("shrink-0 capitalize", APPROVAL_STATUS[a.status])}>
                     {a.status}
@@ -124,7 +132,7 @@ export function DashboardPanels({
                 id: n.id,
                 title: n.title,
                 subtitle: n.body,
-                meta: `${n.author} • ${format(new Date(n.createdAt), "d MMM yyyy")}`,
+                meta: `${n.author} • ${safeFormatDate(n.createdAt, "d MMM yyyy")}`,
                 badge: (
                   <Badge variant="outline" className="shrink-0 capitalize">
                     {n.priority}
@@ -141,7 +149,7 @@ export function DashboardPanels({
                 id: m.id,
                 title: m.title,
                 subtitle: m.reference,
-                meta: `${m.author} • ${format(new Date(m.createdAt), "d MMM yyyy")}`,
+                meta: `${m.author} • ${safeFormatDate(m.createdAt, "d MMM yyyy")}`,
               }))}
             />
           </TabsContent>
@@ -153,7 +161,7 @@ export function DashboardPanels({
                 id: b.id,
                 title: b.title,
                 subtitle: b.message,
-                meta: `${b.author} • ${format(new Date(b.createdAt), "d MMM yyyy")}`,
+                meta: `${b.author} • ${safeFormatDate(b.createdAt, "d MMM yyyy")}`,
               }))}
             />
           </TabsContent>
@@ -165,7 +173,7 @@ export function DashboardPanels({
                 id: a.id,
                 title: a.title,
                 subtitle: a.message,
-                meta: format(new Date(a.createdAt), "d MMM yyyy HH:mm"),
+                meta: safeFormatDate(a.createdAt, "d MMM yyyy HH:mm"),
                 badge: (
                   <Badge variant="outline" className={cn("shrink-0 capitalize", ALERT_SEVERITY[a.severity])}>
                     {a.severity}
