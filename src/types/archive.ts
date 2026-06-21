@@ -9,6 +9,14 @@ export type ArchiveStoredCase = {
   caseNumber: string;
   title: string;
   caseType: string;
+  caseTypeId: number | null;
+  caseTypeCode: string;
+  caseTypeName: string;
+  caseTypeFullLabel: string;
+  caseFamily: string;
+  classificationStatus: "canonical" | "legacy" | "pending_review";
+  caseCategoryCode: string;
+  caseCategoryName: string;
   courtStation: string;
   courtDivision: string;
   year: number | null;

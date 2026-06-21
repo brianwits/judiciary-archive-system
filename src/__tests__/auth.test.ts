@@ -38,6 +38,12 @@ describe("Server action authorization pattern", () => {
     expect(result.reason).toBe("Insufficient permissions");
   });
 
+  it("blocks magistrate from editing cases", () => {
+    const result = authorizeAction({ role: "magistrate" }, canEditCases);
+    expect(result.authorized).toBe(false);
+    expect(result.reason).toBe("Insufficient permissions");
+  });
+
   it("blocks judge from deleting documents", () => {
     const result = authorizeAction({ role: "judge" }, isAdmin);
     expect(result.authorized).toBe(false);

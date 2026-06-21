@@ -70,7 +70,8 @@ export function SearchResults({ query, cases, movements }: SearchResultsProps) {
                 <TableRow>
                   <TableHead>Case number</TableHead>
                   <TableHead>Parties</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Case type</TableHead>
+                  <TableHead>Family</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />
                 </TableRow>
@@ -82,7 +83,8 @@ export function SearchResults({ query, cases, movements }: SearchResultsProps) {
                     <TableCell className="text-sm">
                       {item.plaintiff} v. {item.defendant}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{item.caseType}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{item.caseTypeFullLabel}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{item.caseFamily}</TableCell>
                     <TableCell>
                       <CaseStatusBadge status={item.status} />
                     </TableCell>

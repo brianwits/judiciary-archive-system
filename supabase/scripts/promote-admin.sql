@@ -4,5 +4,5 @@
 UPDATE public.profiles
 SET role = 'admin'
 WHERE id = (
-  SELECT id FROM auth.users WHERE email = 'admin@courts.go.ke' LIMIT 1
+  SELECT id FROM auth.users WHERE email = 'admin@court.go.ke' LIMIT 1
 );

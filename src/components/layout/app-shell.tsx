@@ -7,10 +7,12 @@ import { AppSidebar } from "./app-sidebar";
 import { AppTopbar } from "./app-topbar";
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
-  const profile = await getSessionProfile();
+  const [profile, navSnapshot] = await Promise.all([
+    getSessionProfile(),
+    getNavSnapshot(),
+  ]);
   if (!profile) redirect("/login");
 
-  const navSnapshot = await getNavSnapshot();
   const navCounts: NavCounts = {
     openCases: navSnapshot.openCases,
     pendingRegistry: navSnapshot.pendingRegistry,

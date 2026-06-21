@@ -121,7 +121,7 @@ async function testInvalidCredentials(supabase) {
   console.log(`\n🔑 Test: Invalid credentials`);
 
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: "brian.mugendi@courts.go.ke",
+    email: "brian.mugendi@court.go.ke",
     password: "wrongpassword",
   });
 
@@ -146,12 +146,12 @@ async function testAllSeededUsersCanLogin(supabase) {
   console.log(`\n🔑 Test: All seeded users can log in`);
 
   const emails = [
-    { email: "brian.mugendi@courts.go.ke", pw: "demo1234" },
-    { email: "mary.wanjiku@courts.go.ke", pw: "demo1234" },
-    { email: "peter.ochieng@courts.go.ke", pw: "demo1234" },
-    { email: "grace.akinyi@courts.go.ke", pw: "demo1234" },
-    { email: "david.mutua@courts.go.ke", pw: "demo1234" },
-    { email: "j.njeri@courts.go.ke", pw: "demo1234" },
+    { email: "brian.mugendi@court.go.ke", pw: "demo1234" },
+    { email: "mary.wanjiku@court.go.ke", pw: "demo1234" },
+    { email: "peter.ochieng@court.go.ke", pw: "demo1234" },
+    { email: "grace.akinyi@court.go.ke", pw: "demo1234" },
+    { email: "david.mutua@court.go.ke", pw: "demo1234" },
+    { email: "j.njeri@court.go.ke", pw: "demo1234" },
     { email: "brian.mugendi@court.go.ke", pw: "court1234" },
     { email: "admin@court.go.ke", pw: "court1234" },
     { email: "samuel.maina@court.go.ke", pw: "court1234" },
@@ -186,7 +186,7 @@ async function main() {
   });
 
   // Run tests
-  await testValidLogin(supabase, "brian.mugendi@courts.go.ke", "demo1234", "Valid login (courts.go.ke roster)");
+  await testValidLogin(supabase, "brian.mugendi@court.go.ke", "demo1234", "Valid login (court.go.ke roster)");
   await testValidLogin(supabase, "admin@court.go.ke", "court1234", "Valid login (court.go.ke QA)");
   await testInvalidCredentials(supabase);
   await testNonExistentUser(supabase);

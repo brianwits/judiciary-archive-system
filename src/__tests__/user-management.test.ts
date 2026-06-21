@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { normalizeCourtEmail } from "@/lib/email";
 import { canManageUsers } from "@/types/roles";
 import type { UserRole } from "@/types/roles";
 
@@ -7,17 +8,18 @@ import type { UserRole } from "@/types/roles";
 // ---------------------------------------------------------------------------
 
 const emailSchema = (email: string) => {
-  if (!email || email.trim().length === 0) {
+  const normalized = normalizeCourtEmail(email);
+  if (!normalized || normalized.trim().length === 0) {
     return { success: false as const, error: { message: "Email is required." } };
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email.trim())) {
+  if (!emailRegex.test(normalized)) {
     return { success: false as const, error: { message: "Please enter a valid email address." } };
   }
-  if (email.trim().length > 320) {
+  if (normalized.length > 320) {
     return { success: false as const, error: { message: "Email is too long." } };
   }
-  return { success: true as const, data: email.trim() };
+  return { success: true as const, data: normalized };
 };
 
 // ---------------------------------------------------------------------------
@@ -77,7 +79,15 @@ function simulateUpdateUserDetails(
   }
 
   // Role validation
-  const validRoles = ["admin", "ict_officer", "registry_clerk", "archivist", "deputy_registrar", "judge"];
+  const validRoles = [
+    "admin",
+    "ict_officer",
+    "registry_clerk",
+    "archivist",
+    "deputy_registrar",
+    "magistrate",
+    "judge",
+  ];
   if (!formData.role || !validRoles.includes(formData.role)) {
     return {
       ok: false,
@@ -113,11 +123,84 @@ function simulateUpdateUserDetails(
   return { ok: true, emailChanged, auditLogged: emailChanged };
 }
 
+type CreateUserResult =
+  | { ok: true; email: string }
+  | { ok: false; error: { code: string; message: string } };
+
+function simulateCreateUser(
+  profile: { id: string; role: UserRole; fullName: string } | null,
+  input: { fullName?: string; email?: string; password?: string; role?: string },
+  existingEmails: string[],
+): CreateUserResult {
+  if (!profile || !canManageUsers(profile.role)) {
+    return { ok: false, error: { code: "UNAUTHORIZED", message: "Unauthorized" } };
+  }
+
+  if (!input.fullName || input.fullName.trim().length < 2) {
+    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Check the new user details and try again." } };
+  }
+
+  const parsedEmail = emailSchema(input.email ?? "");
+  if (!parsedEmail.success) {
+    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Invalid email address." } };
+  }
+
+  if (!input.password || input.password.trim().length < 6) {
+    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Password must be at least 6 characters." } };
+  }
+
+  if (!input.role || !["admin", "ict_officer", "registry_clerk", "archivist", "deputy_registrar", "magistrate", "judge"].includes(input.role)) {
+    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Invalid user role." } };
+  }
+
+  if (existingEmails.map((email) => normalizeCourtEmail(email)).includes(parsedEmail.data)) {
+    return { ok: false, error: { code: "CONFLICT", message: "A user with this email already exists." } };
+  }
+
+  return { ok: true, email: parsedEmail.data };
+}
+
+type DeleteUserResult =
+  | { ok: true }
+  | { ok: false; error: { code: string; message: string } };
+
+function simulateDeleteUser(
+  profile: { id: string; role: UserRole; fullName: string } | null,
+  target: { id: string; role: UserRole; fullName: string } | null,
+  managerCount: number,
+): DeleteUserResult {
+  if (!profile || !canManageUsers(profile.role)) {
+    return { ok: false, error: { code: "UNAUTHORIZED", message: "Unauthorized" } };
+  }
+
+  if (!target) {
+    return { ok: false, error: { code: "NOT_FOUND", message: "User not found." } };
+  }
+
+  if (target.id === profile.id) {
+    return { ok: false, error: { code: "FORBIDDEN", message: "You cannot delete your own account." } };
+  }
+
+  if (canManageUsers(target.role) && managerCount <= 1) {
+    return { ok: false, error: { code: "FORBIDDEN", message: "At least one admin or ICT officer must remain." } };
+  }
+
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Email update — dedicated action tests
 // ---------------------------------------------------------------------------
 
 describe("user email update — updateUserEmail", () => {
+  it("normalizes legacy court domains to the standard domain", () => {
+    const result = emailSchema("Brian.Mugendi@Courts.go.ke");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toBe("brian.mugendi@court.go.ke");
+    }
+  });
+
   it("rejects unauthenticated requests", () => {
     const result = simulateUpdateEmail(null, "user-001", "new@court.go.ke", true);
     expect(result.ok).toBe(false);
@@ -309,13 +392,84 @@ describe("user details update — updateUserDetails (with email)", () => {
   });
 });
 
+describe("user create and delete", () => {
+  it("allows admin to create a user with the standardized domain", () => {
+    const result = simulateCreateUser(
+      { id: "admin-1", role: "admin", fullName: "Admin" },
+      { fullName: "Test User", email: "new.person@court.go.ke", password: "demo1234", role: "registry_clerk" },
+      ["existing@court.go.ke"],
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.email).toBe("new.person@court.go.ke");
+    }
+  });
+
+  it("allows magistrate as a selectable user role for new users", () => {
+    const result = simulateCreateUser(
+      { id: "admin-1", role: "admin", fullName: "Admin" },
+      { fullName: "Test User", email: "magistrate.person@court.go.ke", password: "demo1234", role: "magistrate" },
+      [],
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.email).toBe("magistrate.person@court.go.ke");
+    }
+  });
+
+  it("blocks create user for non-management roles", () => {
+    const result = simulateCreateUser(
+      { id: "judge-1", role: "judge", fullName: "Hon. Justice Njeri" },
+      { fullName: "Test User", email: "new@court.go.ke", password: "demo1234", role: "registry_clerk" },
+      [],
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("UNAUTHORIZED");
+    }
+  });
+
+  it("blocks deleting the last management account", () => {
+    const result = simulateDeleteUser(
+      { id: "admin-1", role: "admin", fullName: "Admin" },
+      { id: "ict-1", role: "ict_officer", fullName: "Mary Wanjiku" },
+      1,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("FORBIDDEN");
+    }
+  });
+
+  it("blocks self delete", () => {
+    const result = simulateDeleteUser(
+      { id: "admin-1", role: "admin", fullName: "Admin" },
+      { id: "admin-1", role: "admin", fullName: "Admin" },
+      2,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("FORBIDDEN");
+    }
+  });
+
+  it("allows admin to delete a non-management user", () => {
+    const result = simulateDeleteUser(
+      { id: "admin-1", role: "admin", fullName: "Admin" },
+      { id: "user-1", role: "judge", fullName: "Hon. Justice Njeri" },
+      2,
+    );
+    expect(result.ok).toBe(true);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Permission consistency for user management
 // ---------------------------------------------------------------------------
 
 describe("user management permission consistency", () => {
   const rolesWithUserMgmt: UserRole[] = ["admin", "ict_officer"];
-  const rolesWithoutUserMgmt: UserRole[] = ["registry_clerk", "archivist", "deputy_registrar", "judge"];
+  const rolesWithoutUserMgmt: UserRole[] = ["registry_clerk", "archivist", "deputy_registrar", "magistrate", "judge"];
 
   it.each(rolesWithUserMgmt)("allows %s to manage users", (role) => {
     expect(canManageUsers(role)).toBe(true);

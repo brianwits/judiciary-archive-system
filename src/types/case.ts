@@ -16,6 +16,8 @@ export const CASE_TYPES = [
   "Commercial",
   "Constitutional",
   "Probate",
+  "Traffic",
+  "Succession",
 ] as const;
 
 export type CaseType = (typeof CASE_TYPES)[number];
@@ -37,6 +39,15 @@ export type CaseFile = {
   id: string;
   caseNumber: string;
   caseType: CaseType;
+  caseTypeId: number | null;
+  caseTypeCode: string;
+  caseTypeName: string;
+  caseTypeFullLabel: string;
+  caseFamily: string;
+  caseCourtLevel: string;
+  classificationStatus: "canonical" | "legacy" | "pending_review";
+  caseCategoryCode: string;
+  caseCategoryName: string;
   courtStation: CourtStation;
   courtDivision: CourtDivision;
   year: number;
@@ -61,6 +72,10 @@ export type CaseFilters = {
   q?: string;
   query?: string;
   caseType?: CaseType;
+  caseCategory?: string;
+  caseTypeId?: number;
+  caseFamily?: string;
+  classificationStatus?: "canonical" | "legacy" | "pending_review";
   year?: number;
   status?: CaseStatus;
   courtDivision?: CourtDivision;

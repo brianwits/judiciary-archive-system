@@ -21,6 +21,14 @@ export function casesToCsvRows(
   cases: Array<{
     caseNumber: string;
     caseType: string;
+    caseTypeId: number | null;
+    caseTypeCode: string;
+    caseTypeName: string;
+    caseTypeFullLabel: string;
+    caseFamily: string;
+    classificationStatus: string;
+    caseCategoryCode: string;
+    caseCategoryName: string;
     plaintiff: string;
     defendant: string;
     status: string;
@@ -30,10 +38,35 @@ export function casesToCsvRows(
   }>,
 ): string {
   return buildCsv(
-    ["case_number", "case_type", "plaintiff", "defendant", "status", "archive_code", "court_division", "year"],
+    [
+      "case_number",
+      "case_type",
+      "case_type_id",
+      "case_type_code",
+      "case_type_name",
+      "case_type_full_label",
+      "case_family",
+      "classification_status",
+      "case_category_code",
+      "case_category_name",
+      "plaintiff",
+      "defendant",
+      "status",
+      "archive_code",
+      "court_division",
+      "year",
+    ],
     cases.map((c) => [
       c.caseNumber,
       c.caseType,
+      c.caseTypeId,
+      c.caseTypeCode,
+      c.caseTypeName,
+      c.caseTypeFullLabel,
+      c.caseFamily,
+      c.classificationStatus,
+      c.caseCategoryCode,
+      c.caseCategoryName,
       c.plaintiff,
       c.defendant,
       c.status,

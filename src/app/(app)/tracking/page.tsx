@@ -13,7 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getMovements } from "@/lib/data";
+import { DEFAULT_PAGE_SIZE } from "@/contracts/queries";
+import { getMovements, getOpenMovements } from "@/lib/data";
 
 export default async function TrackingPage() {
   return (
@@ -30,13 +31,10 @@ export default async function TrackingPage() {
 }
 
 async function TrackingPageContent() {
-  const movements = await getMovements();
-  const openMovements = movements.filter(
-    (movement) =>
-      movement.status === "checked_out" ||
-      movement.status === "in_transit" ||
-      movement.status === "overdue",
-  );
+  const [movements, openMovements] = await Promise.all([
+    getMovements({ page: 1, pageSize: DEFAULT_PAGE_SIZE }),
+    getOpenMovements(),
+  ]);
 
   return (
     <>

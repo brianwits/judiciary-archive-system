@@ -19,8 +19,8 @@ export const SEED_AUDIT_LOGS: AuditLog[] = [
     action: "case_created",
     entityType: "case",
     entityId: "case-001",
-    description: "Created case CR/123/2025",
-    metadata: { caseNumber: "CR/123/2025" },
+    description: "Created case HCCR/123/2025",
+    metadata: { caseNumber: "HCCR/123/2025" },
     createdAt: "2025-01-15T09:00:00Z",
   },
   {
@@ -52,8 +52,8 @@ export const SEED_AUDIT_LOGS: AuditLog[] = [
     action: "file_missing",
     entityType: "case",
     entityId: "case-006",
-    description: "Marked CR/567/2023 as missing",
-    metadata: { caseNumber: "CR/567/2023" },
+    description: "Marked MCCR/567/2023 as missing",
+    metadata: { caseNumber: "MCCR/567/2023" },
     createdAt: "2026-05-10T14:00:00Z",
   },
   {

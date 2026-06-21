@@ -60,7 +60,7 @@ export function RegistryRequestForm() {
             <Input
               id="caseNumber"
               name="caseNumber"
-              placeholder="CR/123/2025"
+              placeholder="HCCR/123/2025"
               required
               disabled={pending}
             />

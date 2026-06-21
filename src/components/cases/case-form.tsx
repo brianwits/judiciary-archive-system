@@ -10,11 +10,14 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CASE_TYPE_DEFINITIONS, getCaseTypeDefinition } from "@/data/case-types";
 import type { CaseRow } from "@/types/database";
 
 type CaseFormProps = {
@@ -27,12 +30,18 @@ export function CaseForm({ mode, initial }: CaseFormProps) {
   const [success, setSuccess] = useState(false);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState(initial?.status ?? "open");
+  const [caseTypeId, setCaseTypeId] = useState(
+    initial?.case_type_id ? String(initial.case_type_id) : "",
+  );
+  const selectedType = getCaseTypeDefinition(caseTypeId ? Number(caseTypeId) : null);
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
     setError(null);
     setSuccess(false);
     formData.set("status", status);
+    if (caseTypeId) formData.set("case_type_id", caseTypeId);
+    else formData.delete("case_type_id");
 
     try {
       const result =
@@ -72,6 +81,32 @@ export function CaseForm({ mode, initial }: CaseFormProps) {
           <Label htmlFor="court">Court</Label>
           <Input id="court" name="court" defaultValue={initial?.court ?? ""} />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="case_type_id">Case type</Label>
+        <Select value={caseTypeId} onValueChange={(value) => setCaseTypeId(value ?? "")}>
+          <SelectTrigger id="case_type_id" className="w-full">
+            <SelectValue placeholder="Select case type" />
+          </SelectTrigger>
+          <SelectContent>
+            {(["Magistrate Court", "High Court"] as const).map((courtLevel) => (
+              <SelectGroup key={courtLevel}>
+                <SelectLabel>{courtLevel}</SelectLabel>
+                {CASE_TYPE_DEFINITIONS.filter((definition) => definition.courtLevel === courtLevel).map((definition) => (
+                  <SelectItem key={definition.caseTypeId} value={String(definition.caseTypeId)}>
+                    {definition.fullLabel}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedType && (
+          <p className="text-xs text-muted-foreground">
+            Family: {selectedType.caseFamily} · Court level: {selectedType.courtLevel}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">

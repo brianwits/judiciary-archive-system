@@ -7,15 +7,8 @@ import {
   StatGridSkeleton,
 } from "@/components/shared/page-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type ReportData = {
-  archiveGrowth: { month: string; count: number }[];
-  missingTrend: { month: string; count: number }[];
-  movementFrequency: { week: string; checkouts: number; returns: number }[];
-  divisionStats: { name: string; value: number }[];
-  retrievalPerformance: { division: string; avgHours: number }[];
-  scanningPerformance: { day: string; scans: number }[];
-};
+import { ReportTaxonomyBreakdown } from "@/components/reports/report-taxonomy-breakdown";
+import type { ReportData } from "@/lib/reports-computations";
 
 /**
  * Lightweight chunk — only imports lucide icons + Card components, no recharts.
@@ -59,6 +52,8 @@ export function LazyReportCharts({ data }: { data: ReportData }) {
       <Suspense fallback={<StatGridSkeleton />}>
         <DynamicOverviewStats data={data} />
       </Suspense>
+
+      <ReportTaxonomyBreakdown data={data} />
 
       {/* Charts load in separate chunk — heavy recharts bundle */}
       <Suspense fallback={

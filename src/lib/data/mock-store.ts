@@ -5,34 +5,48 @@ import {
   getLocationById,
   getRoomSummaries,
 } from "@/data/seed/archive-locations";
-import { SEED_CASES } from "@/data/seed/cases";
+import { SEED_CASES, SEED_CASE_NUMBER_ALIASES } from "@/data/seed/cases";
 import { SEED_DASHBOARD, SEED_REGISTRY_REQUESTS } from "@/data/seed/dashboard";
 import { SEED_DOCUMENTS } from "@/data/seed/documents";
 import { SEED_MOVEMENTS } from "@/data/seed/movements";
 import { MOCK_USERS } from "@/data/seed/users";
+import { getCaseCategoryLabel } from "@/lib/case-category";
+import { normalizeCaseNumberLookup } from "@/lib/case-number";
 import { filterCases } from "@/lib/data/case-filtering";
 import type { AuditLog } from "@/types/audit";
 import type { ArchiveLocation, ArchiveStoredCase } from "@/types/archive";
 import type { CaseFile, CaseFilters } from "@/types/case";
 import type { DashboardData, RegistryRequest } from "@/types/dashboard";
 import type { CaseDocument } from "@/types/document";
-import type { FileMovement } from "@/types/movement";
+import type { FileMovement, OpenMovementOption } from "@/types/movement";
 import type { UserProfile } from "@/types/user";
 import type { NotificationPreferences } from "@/types/notification";
 import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/types/notification";
+import { normalizeCourtEmail } from "@/lib/email";
 
 let cases = [...SEED_CASES];
+let caseNumberAliases = [...SEED_CASE_NUMBER_ALIASES];
 let movements = [...SEED_MOVEMENTS];
 let documents = [...SEED_DOCUMENTS];
 let auditLogs = [...SEED_AUDIT_LOGS];
 const users = [...MOCK_USERS];
 
+function createMockUserId() {
+  return globalThis.crypto?.randomUUID?.() ?? `user-${Date.now()}`;
+}
+
 let registryRequests = [...SEED_REGISTRY_REQUESTS];
+const OPEN_MOVEMENT_STATUSES = new Set<FileMovement["status"]>([
+  "checked_out",
+  "in_transit",
+  "overdue",
+]);
 
 export const mockStore = {
   getUsers: () => users,
   getUserById: (id: string) => users.find((u) => u.id === id),
-  getUserByEmail: (email: string) => users.find((u) => u.email === email),
+  getUserByEmail: (email: string) =>
+    users.find((u) => normalizeCourtEmail(u.email) === normalizeCourtEmail(email)),
 
   getDashboard: (): DashboardData => ({
     ...SEED_DASHBOARD,
@@ -60,11 +74,44 @@ export const mockStore = {
   },
 
   getCases: (filters?: CaseFilters): CaseFile[] => {
-    return filterCases(cases, filters);
+    return filterCases(cases, filters, buildCaseNumberAliasMap());
   },
 
   getCaseById: (id: string) => cases.find((c) => c.id === id),
-  getCaseByNumber: (caseNumber: string) => cases.find((c) => c.caseNumber === caseNumber),
+  getCaseByNumber: (caseNumber: string) => {
+    const normalized = normalizeCaseNumberLookup(caseNumber);
+    const direct = cases.find((c) => normalizeCaseNumberLookup(c.caseNumber) === normalized);
+    if (direct) return direct;
+    const alias = caseNumberAliases.find(
+      (item) => normalizeCaseNumberLookup(item.caseNumber) === normalized,
+    );
+    return alias ? cases.find((c) => c.id === alias.caseId) : undefined;
+  },
+  getCaseByScanCode: (code: string) => {
+    const normalized = normalizeCaseNumberLookup(code);
+    const alias = caseNumberAliases.find(
+      (item) => normalizeCaseNumberLookup(item.caseNumber) === normalized,
+    );
+    const caseFile = cases.find(
+      (c) =>
+        normalizeCaseNumberLookup(c.caseNumber) === normalized ||
+        c.qrBarcode?.toLowerCase() === normalized ||
+        normalizeCaseNumberLookup(c.archiveCode) === normalized ||
+        c.id === alias?.caseId ||
+        c.caseCategoryCode.toLowerCase() === normalized,
+    );
+    if (!caseFile) return null;
+    if (caseFile.caseNumber.toLowerCase() === normalized) {
+      return { caseFile, matchedBy: "case_number" as const };
+    }
+    if (caseFile.qrBarcode?.toLowerCase() === normalized) {
+      return { caseFile, matchedBy: "qr_barcode" as const };
+    }
+    if (alias?.caseId === caseFile.id) {
+      return { caseFile, matchedBy: "case_number_alias" as const };
+    }
+    return { caseFile, matchedBy: "archive_code" as const };
+  },
 
   createCase: (data: Omit<CaseFile, "id" | "createdAt" | "updatedAt">): CaseFile => {
     const newCase: CaseFile = {
@@ -80,6 +127,17 @@ export const mockStore = {
   updateCase: (id: string, data: Partial<CaseFile>): CaseFile | null => {
     const idx = cases.findIndex((c) => c.id === id);
     if (idx === -1) return null;
+    if (data.caseNumber && data.caseNumber !== cases[idx].caseNumber) {
+      const previousCaseNumber = cases[idx].caseNumber;
+      const normalized = normalizeCaseNumberLookup(previousCaseNumber);
+      if (
+        !caseNumberAliases.some(
+          (alias) => normalizeCaseNumberLookup(alias.caseNumber) === normalized,
+        )
+      ) {
+        caseNumberAliases = [...caseNumberAliases, { caseId: id, caseNumber: previousCaseNumber }];
+      }
+    }
     cases[idx] = { ...cases[idx], ...data, updatedAt: new Date().toISOString() };
     return cases[idx];
   },
@@ -88,6 +146,7 @@ export const mockStore = {
     const existing = cases.some((c) => c.id === id);
     if (!existing) return false;
     cases = cases.filter((c) => c.id !== id);
+    caseNumberAliases = caseNumberAliases.filter((alias) => alias.caseId !== id);
     documents = documents.filter((d) => d.caseId !== id);
     movements = movements.filter((m) => m.caseId !== id);
     return true;
@@ -103,6 +162,14 @@ export const mockStore = {
         caseNumber: c.caseNumber,
         title: c.defendant ? `${c.plaintiff} v. ${c.defendant}` : c.plaintiff,
         caseType: c.caseType,
+        caseTypeId: c.caseTypeId,
+        caseTypeCode: c.caseTypeCode,
+        caseTypeName: c.caseTypeName,
+        caseTypeFullLabel: c.caseTypeFullLabel,
+        caseFamily: c.caseFamily,
+        classificationStatus: c.classificationStatus,
+        caseCategoryCode: c.caseCategoryCode,
+        caseCategoryName: c.caseCategoryName ?? getCaseCategoryLabel(c.caseCategoryCode),
         courtStation: c.courtStation,
         courtDivision: c.courtDivision,
         year: c.year,
@@ -123,6 +190,17 @@ export const mockStore = {
 
   getMovements: () => [...movements],
   getMovementsByCase: (caseId: string) => movements.filter((m) => m.caseId === caseId),
+  getOpenMovements: (): OpenMovementOption[] =>
+    [...movements]
+      .filter((movement) => OPEN_MOVEMENT_STATUSES.has(movement.status))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((movement) => ({
+        id: movement.id,
+        caseId: movement.caseId,
+        caseNumber: movement.caseNumber,
+        destinationOffice: movement.destinationOffice,
+        createdAt: movement.createdAt,
+      })),
   getRecentMovements: (limit = 5) =>
     [...movements].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit),
 
@@ -209,8 +287,35 @@ export const mockStore = {
   updateUser: (id: string, data: Partial<UserProfile>) => {
     const idx = users.findIndex((u) => u.id === id);
     if (idx === -1) return null;
-    users[idx] = { ...users[idx], ...data, updatedAt: new Date().toISOString() };
+    users[idx] = {
+      ...users[idx],
+      ...data,
+      ...(data.email ? { email: normalizeCourtEmail(data.email) } : {}),
+      updatedAt: new Date().toISOString(),
+    };
     return users[idx];
+  },
+
+  createUser: (
+    data: Omit<UserProfile, "id" | "createdAt" | "updatedAt">,
+  ): UserProfile => {
+    const now = new Date().toISOString();
+    const user: UserProfile = {
+      ...data,
+      id: createMockUserId(),
+      email: normalizeCourtEmail(data.email),
+      createdAt: now,
+      updatedAt: now,
+    };
+    users.unshift(user);
+    return user;
+  },
+
+  deleteUser: (id: string): boolean => {
+    const idx = users.findIndex((u) => u.id === id);
+    if (idx === -1) return false;
+    users.splice(idx, 1);
+    return true;
   },
 
   assignLocation: (caseId: string, locationId: string) => {
@@ -222,5 +327,16 @@ export const mockStore = {
     });
   },
 };
+
+function buildCaseNumberAliasMap(): Map<string, string[]> {
+  const aliasesByCaseId = new Map<string, string[]>();
+  for (const alias of caseNumberAliases) {
+    aliasesByCaseId.set(alias.caseId, [
+      ...(aliasesByCaseId.get(alias.caseId) ?? []),
+      alias.caseNumber,
+    ]);
+  }
+  return aliasesByCaseId;
+}
 
 export type { ArchiveLocation };

@@ -6,8 +6,9 @@ import {
   MAX_DOCUMENT_FILE_SIZE_LABEL,
   actionError,
   actionOk,
+  documentCategorySchema,
 } from "@/contracts";
-import { canEditCases, getSessionProfile, isAdmin } from "@/lib/auth";
+import { getSessionProfile, hasPermission, isAdmin } from "@/lib/auth";
 import { isMockDataEnabled } from "@/lib/config";
 import { recordAuditLog, revalidateDocumentMutation } from "@/lib/data/action-helpers";
 import { mockStore } from "@/lib/data/mock-store";
@@ -16,7 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function uploadDocument(caseId: string, formData: FormData) {
   const profile = await getSessionProfile();
-  if (!profile || !canEditCases(profile.role)) {
+  if (!profile || !hasPermission(profile.role, "upload_docs")) {
     return actionError("FORBIDDEN", "You do not have permission to upload documents.");
   }
 
@@ -38,6 +39,13 @@ export async function uploadDocument(caseId: string, formData: FormData) {
   }
 
   const title = String(formData.get("title") ?? file.name).trim() || file.name;
+  const categoryResult = documentCategorySchema.safeParse(
+    String(formData.get("category") ?? "Pleadings"),
+  );
+  if (!categoryResult.success) {
+    return actionError("VALIDATION_ERROR", "Select a valid document category.");
+  }
+  const category = categoryResult.data;
   const storagePath = `${caseId}/${crypto.randomUUID()}-${file.name}`;
 
   let caseNumber: string;
@@ -48,7 +56,7 @@ export async function uploadDocument(caseId: string, formData: FormData) {
     mockStore.addDocument({
       caseId,
       title,
-      category: "Pleadings",
+      category,
       storagePath,
       mimeType: file.type,
       fileSize: file.size,
@@ -73,6 +81,7 @@ export async function uploadDocument(caseId: string, formData: FormData) {
         storage_path: storagePath,
         mime_type: file.type,
         file_size: file.size,
+        category,
         uploaded_by: profile.id,
       })
       .select("id")
@@ -99,7 +108,7 @@ export async function uploadDocument(caseId: string, formData: FormData) {
     entityType: "document",
     entityId: caseId,
     description: `Uploaded ${title} for ${caseNumber}`,
-    metadata: { caseNumber, title },
+    metadata: { caseNumber, title, category },
   });
 
   revalidateDocumentMutation(caseId);

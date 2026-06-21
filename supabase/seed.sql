@@ -24,41 +24,50 @@ ON CONFLICT (id) DO NOTHING;
 -- Demo cases
 INSERT INTO public.cases (
   case_number, title, court, status, filed_date, description,
-  case_type, court_station, court_division, year,
+  case_type, case_category_code, court_station, court_division, year,
   plaintiff, defendant, archive_code, is_missing
 )
 VALUES
   (
-    'CR/123/2025', 'Republic v. John Kamau', 'KBT', 'open', '2025-01-15',
+    'HCCR/123/2025', 'Republic v. John Kamau', 'KBT', 'open', '2025-01-15',
     'Criminal matter — theft charges.',
-    'Criminal', 'KBT', 'High Court', 2025,
+    'Criminal', 'HC_CRIMINAL', 'KBT', 'High Court', 2025,
     'Republic', 'John Kamau', 'KBT-CR-2025-123', false
   ),
   (
     'ELC/E018/2023', 'Green Valley Ltd v. County Land Board', 'KBT', 'archived', '2023-03-10',
     'Environment and land dispute.',
-    'ELC', 'KBT', 'Environment & Land', 2023,
+    'ELC', 'ELC_MATTER', 'KBT', 'Environment & Land', 2023,
     'Green Valley Ltd', 'County Land Board', 'KBT-ELC-2023-E018', false
   ),
   (
     'COM/234/2024', 'Digital Corp v. Tech Solutions Ltd', 'NRB', 'pending_return', '2024-06-02',
     'Commercial contract dispute.',
-    'Commercial', 'NRB', 'Commercial Division', 2024,
+    'Commercial', 'HC_COMMERCIAL', 'NRB', 'Commercial Division', 2024,
     'Digital Corp', 'Tech Solutions Ltd', 'NRB-COM-2024-234', false
   ),
   (
     'FAM/089/2025', 'Jane Wanjiru v. Peter Wanjiru', 'KBT', 'open', '2025-02-20',
     'Family division — custody matter.',
-    'Family', 'KBT', 'Family Division', 2025,
+    'Family', 'HC_FAMILY', 'KBT', 'Family Division', 2025,
     'Jane Wanjiru', 'Peter Wanjiru', 'KBT-FAM-2025-089', false
   ),
   (
     'CON/012/2025', 'Citizens Coalition v. Attorney General', 'NRB', 'open', '2025-04-01',
     'Constitutional petition.',
-    'Constitutional', 'NRB', 'High Court', 2025,
+    'Constitutional', 'HC_CONSTITUTIONAL', 'NRB', 'High Court', 2025,
     'Citizens Coalition', 'Attorney General', 'NRB-CON-2025-012', false
   )
 ON CONFLICT (case_number) DO NOTHING;
+
+INSERT INTO public.case_number_aliases (case_id, case_number, source)
+SELECT c.id, alias.case_number, 'seed'
+FROM (VALUES
+  ('HCCR/123/2025', 'CR/123/2025'),
+  ('HCCR/123/2025', 'HCR/123/2025')
+) AS alias(current_case_number, case_number)
+JOIN public.cases c ON c.case_number = alias.current_case_number
+ON CONFLICT (normalized_case_number) DO NOTHING;
 
 UPDATE public.cases c
 SET
@@ -66,7 +75,7 @@ SET
   location_id = v.location_id::uuid,
   judge = COALESCE(c.judge, v.judge)
 FROM (VALUES
-  ('CR/123/2025', 'Hon. Justice N. Muli', 'R1 › B1 › R1 › S4', '22222222-2222-2222-2222-222222222203'),
+  ('HCCR/123/2025', 'Hon. Justice N. Muli', 'R1 › B1 › R1 › S4', '22222222-2222-2222-2222-222222222203'),
   ('ELC/E018/2023', 'Hon. Justice P. Owino', 'R2 › B1 › S3', '22222222-2222-2222-2222-222222222212'),
   ('FAM/089/2025', 'Hon. Justice L. Otieno', 'R3', '11111111-1111-1111-1111-111111111103'),
   ('CON/012/2025', 'Hon. Deputy Registrar — Constitutional', 'R5', '11111111-1111-1111-1111-111111111105')
@@ -77,7 +86,7 @@ WHERE c.case_number = v.case_number;
 INSERT INTO public.registry_requests (case_id, request_type, requester, status)
 SELECT c.id, v.request_type, v.requester, v.status
 FROM (VALUES
-  ('CR/123/2025', 'Certified Copy', 'Adv. Kimani', 'pending'),
+  ('HCCR/123/2025', 'Certified Copy', 'Adv. Kimani', 'pending'),
   ('FAM/089/2025', 'File Inspection', 'Jane Wanjiru', 'in_progress'),
   ('ELC/E018/2023', 'Archive Retrieval', 'Green Valley Ltd', 'completed'),
   ('COM/234/2024', 'Party Search', 'Digital Corp', 'pending'),

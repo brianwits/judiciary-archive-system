@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { filterCases } from "@/lib/data/case-filtering";
 import { paginateItems } from "@/contracts/queries";
-import { SEED_CASES } from "@/data/seed/cases";
+import { SEED_CASES, SEED_CASE_NUMBER_ALIASES } from "@/data/seed/cases";
 import type { CaseFile, CaseFilters } from "@/types/case";
 
 // ---------------------------------------------------------------------------
@@ -9,6 +9,14 @@ import type { CaseFile, CaseFilters } from "@/types/case";
 // ---------------------------------------------------------------------------
 function countSeed(predicate: (c: CaseFile) => boolean): number {
   return SEED_CASES.filter(predicate).length;
+}
+
+const aliasesByCaseId = new Map<string, string[]>();
+for (const alias of SEED_CASE_NUMBER_ALIASES) {
+  aliasesByCaseId.set(alias.caseId, [
+    ...(aliasesByCaseId.get(alias.caseId) ?? []),
+    alias.caseNumber,
+  ]);
 }
 
 // ---------------------------------------------------------------------------
@@ -26,9 +34,15 @@ describe("filterCases — search by text query", () => {
   });
 
   it("filters by case number (exact match)", () => {
-    const result = filterCases(SEED_CASES, { q: "CR/123/2025" });
+    const result = filterCases(SEED_CASES, { q: "HCCR/123/2025" });
     expect(result).toHaveLength(1);
-    expect(result[0].caseNumber).toBe("CR/123/2025");
+    expect(result[0].caseNumber).toBe("HCCR/123/2025");
+  });
+
+  it("finds canonical cases through previous case-number aliases", () => {
+    const result = filterCases(SEED_CASES, { q: "CR/123/2025" }, aliasesByCaseId);
+    expect(result).toHaveLength(1);
+    expect(result[0].caseNumber).toBe("HCCR/123/2025");
   });
 
   it("filters by plaintiff name", () => {
@@ -113,6 +127,19 @@ describe("filterCases — filter by caseType", () => {
   });
 });
 
+describe("filterCases — filter by caseCategory", () => {
+  it("filters by canonical category code", () => {
+    const result = filterCases(SEED_CASES, { caseCategory: "HC_CRIMINAL" });
+    expect(result.length).toBeGreaterThan(0);
+    result.forEach((c) => expect(c.caseCategoryCode).toBe("HC_CRIMINAL"));
+  });
+
+  it("matches category labels as well as codes", () => {
+    const result = filterCases(SEED_CASES, { caseCategory: "Probate" });
+    expect(result.some((c) => c.caseCategoryName.toLowerCase().includes("probate"))).toBe(true);
+  });
+});
+
 describe("filterCases — filter by year", () => {
   it("filters by 2025", () => {
     const result = filterCases(SEED_CASES, { year: 2025 });
@@ -179,7 +206,7 @@ describe("filterCases — filter by status", () => {
 describe("filterCases — combined filters", () => {
   it("filters by status + caseType", () => {
     const result = filterCases(SEED_CASES, { status: "open", caseType: "Criminal" });
-    // Only CR/123/2025 is open Criminal (CR/567/2023 is missing)
+    // Only HCCR/123/2025 is open Criminal (MCCR/567/2023 is missing)
     expect(result.length).toBeGreaterThanOrEqual(1);
     result.forEach((c) => {
       expect(c.status).toBe("open");
@@ -189,7 +216,7 @@ describe("filterCases — combined filters", () => {
 
   it("filters by year + caseType", () => {
     const result = filterCases(SEED_CASES, { year: 2023, caseType: "Criminal" });
-    // CR/567/2023 (seed) + 1 generated Criminal 2023 case
+    // MCCR/567/2023 (seed) + 1 generated Criminal 2023 case
     expect(result).toHaveLength(2);
     result.forEach((c) => {
       expect(c.caseType).toBe("Criminal");
@@ -199,9 +226,9 @@ describe("filterCases — combined filters", () => {
 
   it("filters by search + status", () => {
     const result = filterCases(SEED_CASES, { q: "ABC", status: "closed" });
-    // CIV/456/2024: ABC Enterprises v. XYZ Holdings, closed
+    // HCCC/456/2024: ABC Enterprises v. XYZ Holdings, closed
     expect(result).toHaveLength(1);
-    expect(result[0].caseNumber).toBe("CIV/456/2024");
+    expect(result[0].caseNumber).toBe("HCCC/456/2024");
   });
 
   it("filters by search + caseType + year (triple filter)", () => {
@@ -329,7 +356,7 @@ describe("getCasesPage integration pattern (filter + paginate)", () => {
     const paginated = paginateItems(filtered, { page: 1, pageSize: 25 });
     expect(paginated.items.length).toBe(filtered.length);
     expect(paginated.items.length).toBeGreaterThanOrEqual(1);
-    // State appears as plaintiff in criminal cases (CR/123/2025, CR/567/2023)
+    // State appears as plaintiff in criminal cases (HCCR/123/2025, MCCR/567/2023)
     paginated.items.forEach((c) => {
       expect(
         c.plaintiff.toLowerCase().includes("state") ||

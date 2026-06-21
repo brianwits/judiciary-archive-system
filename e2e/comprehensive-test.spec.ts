@@ -49,7 +49,7 @@ test.describe("Login Flow", () => {
     test.setTimeout(180_000);
     await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState("networkidle");
-    await page.locator("#email").fill("brian.mugendi@courts.go.ke");
+    await page.locator("#email").fill("brian.mugendi@court.go.ke");
     await page.locator("#password").fill(VALID_PASSWORD);
     await page.getByRole("button", { name: /sign in/i }).click();
     await page.waitForFunction(() => !window.location.pathname.includes("/login"), { timeout: 150_000 });
@@ -83,7 +83,7 @@ test.describe("Login Flow", () => {
       await select.selectOption("user-brian");
       await page.waitForTimeout(500);
       const emailValue = await email.inputValue();
-      expect(emailValue).toBe("brian.mugendi@courts.go.ke");
+      expect(emailValue).toBe("brian.mugendi@court.go.ke");
       recordResult("Demo user dropdown auto-fills email", true, `Email auto-filled to: ${emailValue}`);
     } else {
       recordResult("Demo user dropdown (production mode - skipped)", true, "Not applicable in production mode");
@@ -117,7 +117,7 @@ test.describe("Login Flow", () => {
   });
 
   test("1.3 - Valid login redirects to dashboard", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.waitForTimeout(1000);
 
     const onDashboard = !page.url().includes("/login");
@@ -152,7 +152,7 @@ test.describe("Login Flow", () => {
   });
 
   test("1.5 - Logout works", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
 
     // Sign out is inside a user DropdownMenu — open the trigger first
     const dropdownTrigger = page.locator('[data-slot="dropdown-menu-trigger"]').last();
@@ -180,7 +180,7 @@ test.describe("Login Flow", () => {
 
 test.describe("Dashboard & Navigation", () => {
   test("2.1 - Dashboard has KPIs, movements, quick actions", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1500);
@@ -203,7 +203,7 @@ test.describe("Dashboard & Navigation", () => {
   });
 
   test("2.2 - Sidebar navigation visible with links", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.waitForTimeout(1000);
 
     const body = await page.locator("body").textContent() || "";
@@ -214,7 +214,7 @@ test.describe("Dashboard & Navigation", () => {
   });
 
   test("2.3 - All page routes load without errors", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
 
     const pages = ["/", "/cases", "/tracking", "/registry", "/archive", "/audit", "/reports", "/settings", "/users"];
 
@@ -242,7 +242,7 @@ test.describe("Dashboard & Navigation", () => {
   });
 
   test("2.4 - Theme toggle switch works", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
 
     // Look for theme toggle buttons - try various selectors
     const themeBtn = page.locator(
@@ -278,7 +278,7 @@ test.describe("Dashboard & Navigation", () => {
 
 test.describe("Cases Module", () => {
   test("3.1 - Cases page lists cases with filters", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/cases`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1500);
@@ -311,7 +311,7 @@ test.describe("Cases Module", () => {
   });
 
   test("3.2 - Create a new case", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/cases/new`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1500);
@@ -340,7 +340,7 @@ test.describe("Cases Module", () => {
   });
 
   test("3.3 - View case details", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/cases`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1000);
@@ -375,7 +375,7 @@ test.describe("Cases Module", () => {
 
 test.describe("Other Pages", () => {
   test("4.1 - Tracking page", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/tracking`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1000);
@@ -394,7 +394,7 @@ test.describe("Other Pages", () => {
   });
 
   test("4.2 - Registry page", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/registry`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1000);
@@ -408,7 +408,7 @@ test.describe("Other Pages", () => {
   });
 
   test("4.3 - Archive page", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/archive`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1000);
@@ -422,7 +422,7 @@ test.describe("Other Pages", () => {
   });
 
   test("4.4 - Audit page", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/audit`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1000);
@@ -439,7 +439,7 @@ test.describe("Other Pages", () => {
   });
 
   test("4.5 - Reports page", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/reports`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2000);
@@ -456,7 +456,7 @@ test.describe("Other Pages", () => {
   });
 
   test("4.6 - Settings page", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/settings`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1000);
@@ -477,7 +477,7 @@ test.describe("Other Pages", () => {
   });
 
   test("4.7 - Users management page", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.goto(`${BASE_URL}/users`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1000);
@@ -499,7 +499,7 @@ test.describe("Other Pages", () => {
 test.describe("Responsive Design", () => {
   test("5.1 - Mobile viewport (375px)", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
 
     const body = await page.locator("body").textContent() || "";
     const ok = body.length > 50;
@@ -531,7 +531,7 @@ test.describe("Responsive Design", () => {
 
   test("5.2 - Tablet viewport (768px)", async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
 
     const body = await page.locator("body").textContent() || "";
     const ok = body.length > 50;
@@ -540,7 +540,7 @@ test.describe("Responsive Design", () => {
 
   test("5.3 - Desktop viewport (1440px)", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
 
     // Check key pages at desktop (avoid full 9-page iteration to prevent timeouts)
     const keyRoutes = ["/", "/cases", "/tracking"];
@@ -565,7 +565,7 @@ test.describe("Error Checking", () => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(`PAGE ERROR: ${err.message}`));
 
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
 
     // Use 'load' instead of 'networkidle' - avoids HMR WebSocket hanging
     const routes = ["/", "/cases", "/tracking", "/registry", "/archive", "/audit", "/reports", "/settings", "/users"];

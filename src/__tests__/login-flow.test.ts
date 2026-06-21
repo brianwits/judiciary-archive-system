@@ -54,7 +54,7 @@ describe("Mock login flow", () => {
 
   it("mockSignIn with valid credentials sets session cookie and returns success", async () => {
     const { mockSignIn } = await import("@/lib/auth");
-    const validEmail = "brian.mugendi@courts.go.ke";
+    const validEmail = "brian.mugendi@court.go.ke";
 
     const result = await mockSignIn(validEmail, DEMO_PASSWORD);
 
@@ -73,7 +73,7 @@ describe("Mock login flow", () => {
 
   it("mockSignIn with wrong password returns error", async () => {
     const { mockSignIn } = await import("@/lib/auth");
-    const validEmail = "brian.mugendi@courts.go.ke";
+    const validEmail = "brian.mugendi@court.go.ke";
 
     const result = await mockSignIn(validEmail, "wrongpassword");
 
@@ -93,7 +93,7 @@ describe("Mock login flow", () => {
   it("mockSignIn rejects inactive accounts", async () => {
     const { mockSignIn } = await import("@/lib/auth");
 
-    const result = await mockSignIn("inactive.staff@courts.go.ke", DEMO_PASSWORD);
+    const result = await mockSignIn("inactive.staff@court.go.ke", DEMO_PASSWORD);
 
     expect(result.error).toBe("This account has been deactivated.");
     expect(mockCookieStore.set).not.toHaveBeenCalled();

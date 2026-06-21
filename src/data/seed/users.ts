@@ -5,7 +5,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: "user-brian",
     fullName: "Brian Mugendi",
-    email: "brian.mugendi@courts.go.ke",
+    email: "brian.mugendi@court.go.ke",
     pjNumber: "80602",
     department: "ICT",
     role: "admin",
@@ -17,7 +17,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: "user-ict",
     fullName: "Mary Wanjiku",
-    email: "mary.wanjiku@courts.go.ke",
+    email: "mary.wanjiku@court.go.ke",
     pjNumber: "74118",
     department: "ICT",
     role: "ict_officer",
@@ -29,7 +29,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: "user-registry",
     fullName: "Peter Ochieng",
-    email: "peter.ochieng@courts.go.ke",
+    email: "peter.ochieng@court.go.ke",
     pjNumber: "69241",
     department: "Registry",
     role: "registry_clerk",
@@ -41,7 +41,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: "user-archivist",
     fullName: "Grace Akinyi",
-    email: "grace.akinyi@courts.go.ke",
+    email: "grace.akinyi@court.go.ke",
     pjNumber: "58320",
     department: "Archive",
     role: "archivist",
@@ -53,7 +53,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: "user-deputy",
     fullName: "David Mutua",
-    email: "david.mutua@courts.go.ke",
+    email: "david.mutua@court.go.ke",
     pjNumber: "62877",
     department: "Registry",
     role: "deputy_registrar",
@@ -63,9 +63,21 @@ export const MOCK_USERS: UserProfile[] = [
     updatedAt: "2026-05-01T10:00:00Z",
   },
   {
+    id: "user-magistrate",
+    fullName: "Hon. Magistrate Hassan",
+    email: "hassan.omondi@court.go.ke",
+    pjNumber: "50218",
+    department: "Judiciary",
+    role: "magistrate",
+    isActive: true,
+    notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES, overdueReminders: false },
+    createdAt: "2024-05-28T08:00:00Z",
+    updatedAt: "2026-05-01T10:00:00Z",
+  },
+  {
     id: "user-judge",
     fullName: "Hon. Justice Njeri",
-    email: "j.njeri@courts.go.ke",
+    email: "j.njeri@court.go.ke",
     pjNumber: "45903",
     department: "Judiciary",
     role: "judge",
@@ -77,7 +89,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: "user-inactive",
     fullName: "Former Staff Member",
-    email: "inactive.staff@courts.go.ke",
+    email: "inactive.staff@court.go.ke",
     pjNumber: "00000",
     department: "Archive",
     role: "archivist",

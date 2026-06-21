@@ -74,7 +74,7 @@ test.describe("Login Page – Page Load", () => {
     const mock = await isMockMode(page);
     if (mock) {
       await expect(page.locator("#email")).toHaveValue(
-        "brian.mugendi@courts.go.ke",
+        "brian.mugendi@court.go.ke",
       );
     } else {
       // In production mode, email starts empty
@@ -126,8 +126,8 @@ test.describe("Login Page – Demo User Selection", () => {
     }
     await page.waitForSelector("#demo-user-select", { timeout: 5_000 });
     const options = page.locator("#demo-user-select option");
-    // 1 placeholder + 7 users (inactive user added) = 8 options
-    await expect(options).toHaveCount(8);
+    // 1 placeholder + 8 users (inactive user added) = 9 options
+    await expect(options).toHaveCount(9);
   });
 
   test("user can fill custom email after using dropdown selection", async ({ page }) => {
@@ -171,7 +171,7 @@ test.describe.serial("Login — warmup + form submissions", () => {
     // Must fill credentials before clicking Sign In — in production mode fields
     // start empty (vs mock mode where they're pre-filled from the demo dropdown).
     await page.waitForSelector("#email", { timeout: 15_000 });
-    await page.locator("#email").fill("brian.mugendi@courts.go.ke");
+    await page.locator("#email").fill("brian.mugendi@court.go.ke");
     await page.locator("#password").fill(DEMO_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
     // Use waitForFunction to check URL change without waiting for page load compilation
@@ -182,13 +182,13 @@ test.describe.serial("Login — warmup + form submissions", () => {
   });
 
   test("valid login redirects to dashboard", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.waitForURL(/^\/(?!login)/, { timeout: 30_000 });
     await expect(page).toHaveURL(/^\/(?!login)/);
   });
 
   test("dashboard shows after login with admin user", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.waitForURL(/^\/(?!login)/, { timeout: 30_000 });
     await expect(
       page.getByText(/Dashboard|Welcome|Overview|KPI|Quick Actions/),
@@ -196,26 +196,26 @@ test.describe.serial("Login — warmup + form submissions", () => {
   });
 
   test("login works with registry clerk user", async ({ page }) => {
-    await loginAs(page, "peter.ochieng@courts.go.ke");
+    await loginAs(page, "peter.ochieng@court.go.ke");
     await page.waitForURL(/^\/(?!login)/, { timeout: 30_000 });
     await expect(page).toHaveURL(/^\/(?!login)/);
   });
 
   test("login works with archivist user", async ({ page }) => {
-    await loginAs(page, "grace.akinyi@courts.go.ke");
+    await loginAs(page, "grace.akinyi@court.go.ke");
     await page.waitForURL(/^\/(?!login)/, { timeout: 30_000 });
     await expect(page).toHaveURL(/^\/(?!login)/);
   });
 
   test("button shows 'Signing in…' while submitting", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.waitForURL(/^\/(?!login)/, { timeout: 30_000 });
   });
 
   // --- Invalid credentials (also depend on compiled server action) ---
 
   test("wrong password shows error message", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke", "wrongpassword");
+    await loginAs(page, "brian.mugendi@court.go.ke", "wrongpassword");
     await expect(page.getByText("Invalid email or password.")).toBeVisible({
       timeout: 30_000,
     });
@@ -229,13 +229,13 @@ test.describe.serial("Login — warmup + form submissions", () => {
   });
 
   test("remains on login page after failed login", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke", "wrongpassword");
+    await loginAs(page, "brian.mugendi@court.go.ke", "wrongpassword");
     await page.waitForTimeout(1500);
     await expect(page).toHaveURL(/\/login/);
   });
 
   test("can retry login after failed attempt", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke", "wrongpassword");
+    await loginAs(page, "brian.mugendi@court.go.ke", "wrongpassword");
     await expect(page.getByText("Invalid email or password.")).toBeVisible({
       timeout: 30_000,
     });
@@ -249,7 +249,7 @@ test.describe.serial("Login — warmup + form submissions", () => {
   // --- Post-login redirect (needs logged-in session from warmup) ---
 
   test("logged-in user can navigate to /cases", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.waitForURL(/^\/(?!login)/, { timeout: 30_000 });
 
     await page.goto("/cases");
@@ -260,7 +260,7 @@ test.describe.serial("Login — warmup + form submissions", () => {
   });
 
   test("logged-in user can navigate to /users (admin)", async ({ page }) => {
-    await loginAs(page, "brian.mugendi@courts.go.ke");
+    await loginAs(page, "brian.mugendi@court.go.ke");
     await page.waitForURL(/^\/(?!login)/, { timeout: 30_000 });
 
     await page.goto("/users");

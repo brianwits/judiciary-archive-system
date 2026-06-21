@@ -49,7 +49,7 @@ export function CheckoutForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="caseNumber">Case number</Label>
-        <Input id="caseNumber" placeholder="e.g. CR/123/2025" {...register("caseNumber")} />
+        <Input id="caseNumber" placeholder="e.g. HCCR/123/2025" {...register("caseNumber")} />
         <FieldErrorText message={errors.caseNumber?.message} />
       </div>
 

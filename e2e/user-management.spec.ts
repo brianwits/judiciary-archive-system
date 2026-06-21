@@ -56,14 +56,14 @@ test.describe("User Management – Page Load", () => {
     ).toBeVisible();
   });
 
-  test("displays all 7 users in the table", async ({ page }) => {
+  test("displays all 8 users in the table", async ({ page }) => {
     await requireMockMode(page);
     await setMockSession(page, ADMIN_ID);
     await page.goto("/users");
     await page.waitForTimeout(500);
 
     const editButtons = page.getByRole("button", { name: /^Edit / });
-    await expect(editButtons).toHaveCount(7);
+    await expect(editButtons).toHaveCount(8);
   });
 
   test("shows expected user data in table rows", async ({ page }) => {
@@ -75,7 +75,7 @@ test.describe("User Management – Page Load", () => {
     await expect(page.getByText("Brian Mugendi").first()).toBeVisible();
     await expect(page.getByText("Peter Ochieng").first()).toBeVisible();
     await expect(
-      page.getByText(/peter\.ochieng@courts\.go\.ke/).first(),
+      page.getByText(/peter\.ochieng@court\.go\.ke/).first(),
     ).toBeVisible();
     await expect(page.getByText("Grace Akinyi").first()).toBeVisible();
   });
@@ -88,13 +88,13 @@ test.describe("User Management – Page Load", () => {
 
     // Verify that email addresses appear in the table
     await expect(
-      page.getByText("brian.mugendi@courts.go.ke").first(),
+      page.getByText("brian.mugendi@court.go.ke").first(),
     ).toBeVisible();
     await expect(
-      page.getByText("peter.ochieng@courts.go.ke").first(),
+      page.getByText("peter.ochieng@court.go.ke").first(),
     ).toBeVisible();
     await expect(
-      page.getByText("grace.akinyi@courts.go.ke").first(),
+      page.getByText("grace.akinyi@court.go.ke").first(),
     ).toBeVisible();
   });
 
@@ -105,13 +105,13 @@ test.describe("User Management – Page Load", () => {
     await page.waitForTimeout(500);
 
     // Base UI Select renders raw enum values (not labels) in the trigger
-    // e.g., "admin", "registry_clerk", "archivist"
+    // e.g., "admin", "registry_clerk", "archivist", "magistrate"
     const roleTriggers = page.locator('[data-slot="select-trigger"]');
-    await expect(roleTriggers).toHaveCount(7);
+    await expect(roleTriggers).toHaveCount(8);
 
     // Check that each trigger contains a select-value with the raw role
     const values = page.locator('[data-slot="select-value"]');
-    await expect(values).toHaveCount(7);
+    await expect(values).toHaveCount(8);
     await expect(values.nth(0)).toContainText("admin");
     await expect(values.nth(2)).toContainText("registry_clerk");
     await expect(values.nth(3)).toContainText("archivist");
@@ -147,12 +147,12 @@ test.describe("User Management – Page Load", () => {
     await page.goto("/users");
     await page.waitForTimeout(500);
 
-    // With 7 users and PAGE_SIZE=10, there should be 1 page, so
+    // With 8 users and PAGE_SIZE=10, there should be 1 page, so
     // pagination controls should not show
     const prevButton = page.getByRole("button", { name: "Previous" });
     const nextButton = page.getByRole("button", { name: "Next" });
 
-    // 7 users fit on one page, so no pagination
+    // 8 users fit on one page, so no pagination
     await expect(prevButton).toHaveCount(0);
     await expect(nextButton).toHaveCount(0);
   });
@@ -174,7 +174,7 @@ test.describe("Navigation", () => {
     await expect(page.getByText("Profile").first()).toBeVisible();
     await expect(page.getByText("System").first()).toBeVisible();
     await expect(
-      page.getByText("brian.mugendi@courts.go.ke").first(),
+      page.getByText("brian.mugendi@court.go.ke").first(),
     ).toBeVisible();
   });
 

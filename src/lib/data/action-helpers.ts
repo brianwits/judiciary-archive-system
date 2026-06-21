@@ -84,10 +84,22 @@ export function revalidateTrackingMutation(): void {
   revalidateTag(CACHE_TAGS.audit, "max");
 }
 
+/** Revalidate everything affected by a scan lookup audit event. */
+export function revalidateScanMutation(caseId: string): void {
+  revalidatePath("/scanning");
+  revalidatePath("/");
+  revalidatePath("/reports");
+  revalidatePath(`/cases/${caseId}`);
+  revalidateTag(CACHE_TAGS.audit, "max");
+  revalidateTag(CACHE_TAGS.dashboard, "max");
+  revalidateTag(CACHE_TAGS.reports, "max");
+}
+
 /** Revalidate everything affected by registry ops. */
 export function revalidateRegistryMutation(): void {
   revalidatePath("/registry");
   revalidatePath("/");
+  revalidateTag(CACHE_TAGS.registry, "max");
   revalidateTag(CACHE_TAGS.dashboard, "max");
   revalidateTag(CACHE_TAGS.audit, "max");
 }

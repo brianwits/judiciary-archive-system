@@ -63,7 +63,8 @@ export function CasesDataTable({
               />
             </TableHead>
             <TableHead>Case number</TableHead>
-            <TableHead>Type</TableHead>
+            <TableHead>Case type</TableHead>
+            <TableHead>Family</TableHead>
             <TableHead>Parties</TableHead>
             <TableHead className="text-center">Docs</TableHead>
             <TableHead>Status</TableHead>
@@ -94,7 +95,10 @@ export function CasesDataTable({
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm">{caseFile.caseType}</span>
+                  <span className="text-sm">{caseFile.caseTypeFullLabel}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">{caseFile.caseFamily}</span>
                 </TableCell>
                 <TableCell>
                   <div className="max-w-[200px] text-sm">

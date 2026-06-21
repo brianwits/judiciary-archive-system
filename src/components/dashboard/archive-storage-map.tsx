@@ -102,7 +102,11 @@ export function ArchiveStorageMap({ rooms, storedCases, matchingTotal }: Archive
                       <p className="truncate font-semibold">{row.caseNumber}</p>
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{row.title}</p>
                       <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-                        <span>{row.caseType}</span>
+                        <span>{row.caseTypeFullLabel}</span>
+                        <span aria-hidden className="text-border">
+                          •
+                        </span>
+                        <span>{row.caseFamily}</span>
                         <span aria-hidden className="text-border">
                           •
                         </span>

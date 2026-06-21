@@ -1,9 +1,9 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useState, type FormEvent } from "react";
-import { updateMockUserRole, updateUserDetails } from "@/app/actions/users";
+import { createUser, deleteUser, updateMockUserRole, updateUserDetails } from "@/app/actions/users";
 import { AsyncButton } from "@/components/shared/async-button";
 import { FormError } from "@/components/shared/form-error";
 import { ResponsiveTableShell } from "@/components/shared/responsive-table-shell";
@@ -44,6 +44,8 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [creatingOpen, setCreatingOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
   const [page, setPage] = useState(0);
 
   const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
@@ -68,8 +70,56 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
     }
   }
 
+  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPendingId("create");
+    setError(null);
+    try {
+      const result = await createUser(new FormData(event.currentTarget));
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+      setCreatingOpen(false);
+      startTransition(() => router.refresh());
+    } catch {
+      setError("Unable to create the user. Please try again.");
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deletingUser) return;
+    setPendingId(deletingUser.id);
+    setError(null);
+    try {
+      const result = await deleteUser(deletingUser.id);
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+      setDeletingUser(null);
+      startTransition(() => router.refresh());
+    } catch {
+      setError("Unable to delete the user. Please try again.");
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Manage demo users, including creation, edits, and deletion.
+        </p>
+        <Button onClick={() => setCreatingOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create user
+        </Button>
+      </div>
+
       <FormError message={error} />
       <ResponsiveTableShell>
         <Table>
@@ -115,14 +165,26 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    aria-label={`Edit ${user.fullName}`}
-                    size="icon-sm"
-                    variant="outline"
-                    onClick={() => setEditingUser(user)}
-                  >
-                    <Pencil />
-                  </Button>
+                  <div className="inline-flex items-center gap-2">
+                    <Button
+                      aria-label={`Edit ${user.fullName}`}
+                      disabled={pendingId === user.id}
+                      size="icon-sm"
+                      variant="outline"
+                      onClick={() => setEditingUser(user)}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      aria-label={`Delete ${user.fullName}`}
+                      disabled={pendingId === user.id}
+                      size="icon-sm"
+                      variant="destructive"
+                      onClick={() => setDeletingUser(user)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -134,7 +196,8 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, users.length)} of {users.length} users
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, users.length)} of{" "}
+            {users.length} users
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -157,6 +220,22 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
         </div>
       )}
 
+      <CreateUserDialog
+        open={creatingOpen}
+        pending={pendingId === "create"}
+        onOpenChange={setCreatingOpen}
+        onSubmit={handleCreate}
+      />
+      <DeleteUserDialog
+        open={deletingUser !== null}
+        pending={deletingUser ? pendingId === deletingUser.id : false}
+        user={deletingUser}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setDeletingUser(null);
+        }}
+        onConfirm={handleDelete}
+      />
+
       {/* Single shared edit dialog — mounted always, renders content only when open */}
       <SingleEditUserDialog
         user={editingUser}
@@ -167,6 +246,129 @@ export function UsersManagementTable({ users }: { users: UserProfile[] }) {
         onUpdated={() => router.refresh()}
       />
     </div>
+  );
+}
+
+function CreateUserDialog({
+  open,
+  pending,
+  onOpenChange,
+  onSubmit,
+}: {
+  open: boolean;
+  pending: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+}) {
+  const [role, setRole] = useState("registry_clerk");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Create user</DialogTitle>
+          <DialogDescription>
+            Provision a new demo account with an auth login and archive role.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <input type="hidden" name="role" value={role} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="mock-create-fullName">Full name</Label>
+              <Input id="mock-create-fullName" name="fullName" required />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="mock-create-email">Email</Label>
+              <Input
+                id="mock-create-email"
+                name="email"
+                placeholder="user@court.go.ke"
+                type="email"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mock-create-password">Password</Label>
+              <Input id="mock-create-password" name="password" type="password" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mock-create-pjNumber">PJ Number</Label>
+              <Input id="mock-create-pjNumber" name="pjNumber" placeholder="80602" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mock-create-department">Department</Label>
+              <Input id="mock-create-department" name="department" placeholder="ICT" />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Role</Label>
+              <Select value={role} onValueChange={(value) => value && setRole(value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {USER_ROLES.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {ROLE_LABELS[option]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <AsyncButton pending={pending} pendingLabel="Creating" type="submit">
+              Create user
+            </AsyncButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteUserDialog({
+  open,
+  pending,
+  user,
+  onOpenChange,
+  onConfirm,
+}: {
+  open: boolean;
+  pending: boolean;
+  user: UserProfile | null;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => Promise<void>;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete user</DialogTitle>
+          <DialogDescription>
+            {user ? (
+              <>
+                Remove <span className="font-medium text-foreground">{user.fullName}</span> from
+                the system. This deletes their auth account and profile record.
+              </>
+            ) : (
+              "Remove this user from the system."
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <AsyncButton pending={pending} pendingLabel="Deleting" type="button" onClick={onConfirm}>
+            Delete user
+          </AsyncButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -242,43 +444,43 @@ function SingleEditUserDialog({
                   required
                 />
               </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor={`email-${user.id}`}>
-                Email <span className="text-muted-foreground">(auth)</span>
-              </Label>
-              <Input
-                id={`email-${user.id}`}
-                name="email"
-                type="email"
-                defaultValue={user.email}
-                placeholder="user@court.go.ke"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`pjNumber-${user.id}`}>PJ Number</Label>
-              <Input
-                id={`pjNumber-${user.id}`}
-                name="pjNumber"
-                defaultValue={user.pjNumber ?? ""}
-                placeholder="80602"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`department-${user.id}`}>Department</Label>
-              <Input
-                id={`department-${user.id}`}
-                name="department"
-                defaultValue={user.department ?? ""}
-                placeholder="ICT"
-              />
-            </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor={`email-${user.id}`}>
+                  Email <span className="text-muted-foreground">(auth)</span>
+                </Label>
+                <Input
+                  id={`email-${user.id}`}
+                  name="email"
+                  type="email"
+                  defaultValue={user.email}
+                  placeholder="user@court.go.ke"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`pjNumber-${user.id}`}>PJ Number</Label>
+                <Input
+                  id={`pjNumber-${user.id}`}
+                  name="pjNumber"
+                  defaultValue={user.pjNumber ?? ""}
+                  placeholder="80602"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`department-${user.id}`}>Department</Label>
+                <Input
+                  id={`department-${user.id}`}
+                  name="department"
+                  defaultValue={user.department ?? ""}
+                  placeholder="ICT"
+                />
+              </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Role</Label>
                 <Select
                   value={role}
                   disabled={pending}
-                  onValueChange={(value) => setRole(value as UserProfile["role"])}
+                  onValueChange={(value) => value && setRole(value as UserProfile["role"])}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -294,7 +496,7 @@ function SingleEditUserDialog({
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={() => onClose()}>
                 Cancel
               </Button>
               <AsyncButton pending={pending} pendingLabel="Saving" type="submit">

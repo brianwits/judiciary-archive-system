@@ -73,7 +73,7 @@ function simulateUpload(
       action: "document_uploaded",
       entityType: "document",
       entityId: "case-001",
-      description: `Uploaded ${title} for CR/123/2025`,
+      description: `Uploaded ${title} for HCCR/123/2025`,
     },
   };
 }
@@ -128,6 +128,18 @@ describe("document upload — uploadDocument", () => {
   it("rejects judge role (no canEditCases)", () => {
     const result = simulateUpload(
       { id: "judge-1", role: "judge", fullName: "Hon. Justice Njeri" },
+      { file: { name: "test.pdf", type: "application/pdf", size: 1024 } },
+      true,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("FORBIDDEN");
+    }
+  });
+
+  it("rejects magistrate role (no canEditCases)", () => {
+    const result = simulateUpload(
+      { id: "mag-1", role: "magistrate", fullName: "Hon. Magistrate Hassan" },
       { file: { name: "test.pdf", type: "application/pdf", size: 1024 } },
       true,
     );
@@ -362,7 +374,7 @@ describe("document delete — deleteDocument", () => {
 
 describe("document permission consistency", () => {
   const rolesWithEditCases: UserRole[] = ["admin", "ict_officer", "registry_clerk", "archivist"];
-  const rolesWithoutEditCases: UserRole[] = ["judge"];
+  const rolesWithoutEditCases: UserRole[] = ["magistrate", "judge"];
 
   it.each(rolesWithEditCases)("allows %s to edit cases (upload docs)", (role) => {
     expect(canEditCases(role)).toBe(true);
@@ -373,7 +385,7 @@ describe("document permission consistency", () => {
   });
 
   it("only admin can delete documents", () => {
-    for (const role of ["ict_officer", "registry_clerk", "archivist", "deputy_registrar", "judge"] as UserRole[]) {
+    for (const role of ["ict_officer", "registry_clerk", "archivist", "deputy_registrar", "magistrate", "judge"] as UserRole[]) {
       expect(isAdmin(role)).toBe(false);
     }
     expect(isAdmin("admin")).toBe(true);

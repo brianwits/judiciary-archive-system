@@ -1,9 +1,34 @@
 import { buildArchiveCode } from "@/lib/archive-code";
+import {
+  getCaseCategoryCode,
+  getCaseCategoryLabel,
+  getCaseTypeFromCategoryCode,
+} from "@/lib/case-category";
 import type { CaseFile } from "@/types/case";
+import { getCaseTypeDefinition } from "@/data/case-types";
 
-const cases: Omit<CaseFile, "id" | "createdAt" | "updatedAt">[] = [
+type SeedCaseInput = Omit<
+  CaseFile,
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "caseCategoryCode"
+  | "caseCategoryName"
+  | "caseTypeId"
+  | "caseTypeCode"
+  | "caseTypeName"
+  | "caseTypeFullLabel"
+  | "caseFamily"
+  | "caseCourtLevel"
+  | "classificationStatus"
+> & {
+  legacyCaseNumbers?: string[];
+};
+
+const cases: SeedCaseInput[] = [
   {
-    caseNumber: "CR/123/2025",
+    caseNumber: "HCCR/123/2025",
+    legacyCaseNumbers: ["CR/123/2025", "HCR/123/2025"],
     caseType: "Criminal",
     courtStation: "KBT",
     courtDivision: "High Court",
@@ -43,7 +68,8 @@ const cases: Omit<CaseFile, "id" | "createdAt" | "updatedAt">[] = [
     createdBy: "user-registry",
   },
   {
-    caseNumber: "CIV/456/2024",
+    caseNumber: "HCCC/456/2024",
+    legacyCaseNumbers: ["CIV/456/2024"],
     caseType: "Civil",
     courtStation: "NRB",
     courtDivision: "High Court",
@@ -103,7 +129,8 @@ const cases: Omit<CaseFile, "id" | "createdAt" | "updatedAt">[] = [
     createdBy: "user-registry",
   },
   {
-    caseNumber: "CR/567/2023",
+    caseNumber: "MCCR/567/2023",
+    legacyCaseNumbers: ["CR/567/2023"],
     caseType: "Criminal",
     courtStation: "MSA",
     courtDivision: "Magistrate Court",
@@ -164,9 +191,16 @@ const cases: Omit<CaseFile, "id" | "createdAt" | "updatedAt">[] = [
   },
 ];
 
-function generateMoreCases(): Omit<CaseFile, "id" | "createdAt" | "updatedAt">[] {
-  const extra: Omit<CaseFile, "id" | "createdAt" | "updatedAt">[] = [];
+function generateMoreCases(): SeedCaseInput[] {
+  const extra: SeedCaseInput[] = [];
   const types = ["Civil", "Criminal", "ELC", "Family", "Commercial"] as const;
+  const canonicalPrefixes = {
+    Civil: "HCCC",
+    Criminal: "HCCR",
+    ELC: "ELC",
+    Family: "FAM",
+    Commercial: "COM",
+  } as const;
   const stations = ["KBT", "NRB", "MSA", "KSM"] as const;
   const statuses = ["open", "closed", "archived"] as const;
 
@@ -175,8 +209,12 @@ function generateMoreCases(): Omit<CaseFile, "id" | "createdAt" | "updatedAt">[]
     const station = stations[i % stations.length];
     const year = 2020 + (i % 6);
     const caseNo = String(100 + i);
+    const caseNumber = `${canonicalPrefixes[type]}/${caseNo}/${year}`;
+    const legacyCaseNumbers = [`${type.slice(0, 3).toUpperCase()}/${caseNo}/${year}`];
+    if (type === "Criminal") legacyCaseNumbers.push(`HCR/${caseNo}/${year}`);
     extra.push({
-      caseNumber: `${type.slice(0, 3).toUpperCase()}/${caseNo}/${year}`,
+      caseNumber,
+      legacyCaseNumbers: legacyCaseNumbers.filter((legacy) => legacy !== caseNumber),
       caseType: type,
       courtStation: station,
       courtDivision: "High Court",
@@ -199,11 +237,52 @@ function generateMoreCases(): Omit<CaseFile, "id" | "createdAt" | "updatedAt">[]
   return extra;
 }
 
-export const SEED_CASES: CaseFile[] = [...cases, ...generateMoreCases()].map(
-  (c, idx) => ({
-    ...c,
-    id: `case-${String(idx + 1).padStart(3, "0")}`,
-    createdAt: "2024-01-01T08:00:00Z",
-    updatedAt: "2026-05-19T08:00:00Z",
-  }),
+const seedCaseInputs = [...cases, ...generateMoreCases()];
+
+export const SEED_CASES: CaseFile[] = seedCaseInputs.map((seedCase, idx) => {
+    const { legacyCaseNumbers, ...c } = seedCase;
+    void legacyCaseNumbers;
+    const caseCategoryCode = getCaseCategoryCode(null, c.caseNumber, {
+      caseType: c.caseType,
+      courtDivision: c.courtDivision,
+    });
+    const caseType = getCaseTypeFromCategoryCode(caseCategoryCode, {
+      caseType: c.caseType,
+      courtDivision: c.courtDivision,
+    });
+    const authoritativeId: Record<string, number> = {
+      HC_CRIMINAL: 9,
+      HC_COMMERCIAL: 13,
+      HC_CIVIL: 19,
+      MC_CRIMINAL: 33,
+      MC_CIVIL: 31,
+      MC_TRAFFIC: 35,
+      MC_SUCCESSION: 37,
+      MC_SEXUAL_OFFENCE: 72,
+    };
+    const definition = getCaseTypeDefinition(authoritativeId[caseCategoryCode]);
+
+    return {
+      ...c,
+      caseType,
+      caseTypeId: definition?.caseTypeId ?? null,
+      caseTypeCode: definition?.code ?? caseCategoryCode,
+      caseTypeName: definition?.caseType ?? getCaseCategoryLabel(caseCategoryCode),
+      caseTypeFullLabel: definition?.fullLabel ?? getCaseCategoryLabel(caseCategoryCode),
+      caseFamily: definition?.caseFamily ?? caseType,
+      caseCourtLevel: definition?.courtLevel ?? c.courtDivision,
+      classificationStatus: definition ? "canonical" : "legacy",
+      caseCategoryCode,
+      caseCategoryName: getCaseCategoryLabel(caseCategoryCode),
+      id: `case-${String(idx + 1).padStart(3, "0")}`,
+      createdAt: "2024-01-01T08:00:00Z",
+      updatedAt: "2026-05-19T08:00:00Z",
+    };
+  });
+
+export const SEED_CASE_NUMBER_ALIASES = seedCaseInputs.flatMap((seedCase, idx) =>
+  (seedCase.legacyCaseNumbers ?? []).map((caseNumber) => ({
+    caseId: `case-${String(idx + 1).padStart(3, "0")}`,
+    caseNumber,
+  })),
 );

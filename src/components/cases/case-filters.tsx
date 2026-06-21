@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { CASE_STATUSES, CASE_TYPES } from "@/types/case";
+import { CASE_STATUSES } from "@/types/case";
+import { CASE_FAMILIES, CASE_TYPE_DEFINITIONS } from "@/data/case-types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,7 +19,9 @@ export function CaseFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const caseType = searchParams.get("caseType") ?? "";
+  const caseTypeId = searchParams.get("caseTypeId") ?? "";
+  const caseFamily = searchParams.get("caseFamily") ?? "";
+  const classification = searchParams.get("classification") ?? "";
   const year = searchParams.get("year") ?? "";
   const status = searchParams.get("status") ?? "";
 
@@ -34,18 +37,18 @@ export function CaseFilters() {
   }
 
   return (
-    <div className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
+    <div className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-end">
       <div className="space-y-2">
-        <Label>Case type</Label>
-        <Select value={caseType} onValueChange={(v) => updateParam("caseType", v ?? "")}>
-          <SelectTrigger className="w-full lg:w-[160px]">
-            <SelectValue placeholder="All types" />
+        <Label>Case family</Label>
+        <Select value={caseFamily} onValueChange={(v) => updateParam("caseFamily", v ?? "")}>
+          <SelectTrigger className="w-full xl:w-[220px]">
+            <SelectValue placeholder="All families" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">All types</SelectItem>
-            {CASE_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
+            {CASE_FAMILIES.map((family) => (
+              <SelectItem key={family} value={family}>
+                {family}
               </SelectItem>
             ))}
           </SelectContent>
@@ -53,9 +56,41 @@ export function CaseFilters() {
       </div>
 
       <div className="space-y-2">
+        <Label>Case type</Label>
+        <Select value={caseTypeId} onValueChange={(v) => updateParam("caseTypeId", v ?? "")}>
+          <SelectTrigger className="w-full xl:w-[340px]">
+            <SelectValue placeholder="All case types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All case types</SelectItem>
+            {CASE_TYPE_DEFINITIONS.map((definition) => (
+              <SelectItem key={definition.caseTypeId} value={String(definition.caseTypeId)}>
+                {definition.fullLabel}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Classification</Label>
+        <Select value={classification} onValueChange={(v) => updateParam("classification", v ?? "")}>
+          <SelectTrigger className="w-full xl:w-[170px]">
+            <SelectValue placeholder="All records" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All records</SelectItem>
+            <SelectItem value="canonical">Canonical</SelectItem>
+            <SelectItem value="legacy">Legacy</SelectItem>
+            <SelectItem value="pending_review">Pending review</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label>Year</Label>
         <Select value={year} onValueChange={(v) => updateParam("year", v ?? "")}>
-          <SelectTrigger className="w-full lg:w-[120px]">
+          <SelectTrigger className="w-full xl:w-[120px]">
             <SelectValue placeholder="All years" />
           </SelectTrigger>
           <SelectContent>
@@ -72,7 +107,7 @@ export function CaseFilters() {
       <div className="space-y-2">
         <Label>Status</Label>
         <Select value={status} onValueChange={(v) => updateParam("status", v ?? "")}>
-          <SelectTrigger className="w-full lg:w-[160px]">
+          <SelectTrigger className="w-full xl:w-[160px]">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>

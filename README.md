@@ -251,6 +251,7 @@ Profiles use the `court_user_role` enum:
 | Registry Clerk | `registry_clerk` |
 | Archivist | `archivist` |
 | Deputy Registrar | `deputy_registrar` |
+| Magistrate | `magistrate` |
 | Judge | `judge` |
 
 New auth users default to `judge` (read-heavy access). Admins promote roles via **User Management**.
@@ -331,7 +332,7 @@ vercel --prod
 Verify on `https://judiciary-archive-system.vercel.app`:
 
 1. `/login` — no demo user dropdown (mock mode off)
-2. Sign in with a QA account: `admin@court.go.ke` / `court1234`, `brian.mugendi@court.go.ke` / `court1234`, or `samuel.maina@court.go.ke` / `court1234` (or `brian.mugendi@courts.go.ke` / `demo1234` if that roster was seeded)
+2. Sign in with a QA account: `admin@court.go.ke` / `court1234`, `brian.mugendi@court.go.ke` / `court1234`, or `samuel.maina@court.go.ke` / `court1234`
 3. Dashboard loads live KPIs from Supabase
 4. `/users` lists staff with emails (requires `SUPABASE_SERVICE_ROLE_KEY` on Vercel)
 
@@ -417,9 +418,9 @@ supabase/migrations/
 
 | Name | Role | Email |
 |------|------|-------|
-| Brian Mugendi | Admin | brian.mugendi@courts.go.ke |
-| Mary Wanjiku | ICT Officer | mary.wanjiku@courts.go.ke |
-| Peter Ochieng | Registry Clerk | peter.ochieng@courts.go.ke |
-| Grace Akinyi | Archivist | grace.akinyi@courts.go.ke |
-| David Mutua | Deputy Registrar | david.mutua@courts.go.ke |
-| Hon. Justice Njeri | Judge | j.njeri@courts.go.ke |
+| Brian Mugendi | Admin | brian.mugendi@court.go.ke |
+| Mary Wanjiku | ICT Officer | mary.wanjiku@court.go.ke |
+| Peter Ochieng | Registry Clerk | peter.ochieng@court.go.ke |
+| Grace Akinyi | Archivist | grace.akinyi@court.go.ke |
+| David Mutua | Deputy Registrar | david.mutua@court.go.ke |
+| Hon. Justice Njeri | Judge | j.njeri@court.go.ke |

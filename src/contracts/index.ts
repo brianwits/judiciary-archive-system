@@ -5,4 +5,5 @@ export * from "./movements";
 export * from "./queries";
 export * from "./registry";
 export * from "./result";
+export * from "./scanning";
 export * from "./users";

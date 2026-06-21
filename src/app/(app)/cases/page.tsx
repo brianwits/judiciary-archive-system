@@ -10,14 +10,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "@/contracts/queries";
 import { getSessionProfile } from "@/lib/auth";
 import { getCasesPage, getDocumentCountsForCases } from "@/lib/data";
-import type { CaseFilters as CaseFiltersType, CaseStatus, CaseType } from "@/types/case";
+import type { CaseFilters as CaseFiltersType, CaseStatus } from "@/types/case";
 
 const DynamicCasesPageClient = dynamic(() => import("@/components/cases/cases-page-client").then((m) => ({ default: m.CasesPageClient })));
 
 type CasesPageProps = {
   searchParams: Promise<{
     q?: string;
-    caseType?: string;
+    caseTypeId?: string;
+    caseFamily?: string;
+    classification?: string;
     year?: string;
     status?: string;
     page?: string;
@@ -30,7 +32,11 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
   const page = Math.max(Number(params.page) || DEFAULT_PAGE, 1);
 
   if (params.q) filters.q = params.q;
-  if (params.caseType) filters.caseType = params.caseType as CaseType;
+  if (params.caseTypeId) filters.caseTypeId = Number(params.caseTypeId);
+  if (params.caseFamily) filters.caseFamily = params.caseFamily;
+  if (["canonical", "legacy", "pending_review"].includes(params.classification ?? "")) {
+    filters.classificationStatus = params.classification as CaseFiltersType["classificationStatus"];
+  }
   if (params.year) filters.year = Number(params.year);
   if (params.status) filters.status = params.status as CaseStatus;
 
@@ -67,7 +73,7 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
 
       <Suspense fallback={<TablePanelSkeleton rows={8} />}>
         <DynamicCasesPageClient
-          key={[result.page, params.q, params.caseType, params.year, params.status].join("-")}
+          key={[result.page, params.q, params.caseTypeId, params.caseFamily, params.classification, params.year, params.status].join("-")}
           cases={result.items}
           docCountByCaseId={docCountByCaseId}
           role={profile!.role}
@@ -81,7 +87,9 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
         total={result.total}
         searchParams={{
           q: params.q,
-          caseType: params.caseType,
+          caseTypeId: params.caseTypeId,
+          caseFamily: params.caseFamily,
+          classification: params.classification,
           year: params.year,
           status: params.status,
         }}

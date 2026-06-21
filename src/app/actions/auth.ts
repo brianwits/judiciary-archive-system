@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { actionError, actionOk } from "@/contracts/result";
 import { mockSignIn, mockSignOut } from "@/lib/auth";
 import { isMockDataEnabled } from "@/lib/config";
+import { normalizeCourtEmail } from "@/lib/email";
 import { allowRateLimited, forwardedOrRealIp } from "@/lib/rate-limit";
 import { ensureProfileRowForCurrentUser } from "@/lib/supabase/fetch-profile";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +20,7 @@ export async function signIn(formData: FormData) {
     return actionError("TOO_MANY_REQUESTS", "Too many sign-in attempts. Try again shortly.");
   }
 
-  const email = String(formData.get("email") ?? "");
+  const email = normalizeCourtEmail(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
 
   if (isMockDataEnabled()) {

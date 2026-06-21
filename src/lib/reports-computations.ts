@@ -13,6 +13,27 @@ export type ReportData = {
   divisionStats: { name: string; value: number }[];
   retrievalPerformance: { division: string; avgHours: number }[];
   scanningPerformance: { day: string; scans: number }[];
+  courtLevelStats: { name: string; value: number }[];
+  familyStats: { name: string; value: number }[];
+  caseTypeStats: {
+    caseTypeId: number | null;
+    code: string;
+    name: string;
+    fullLabel: string;
+    courtLevel: string;
+    family: string;
+    value: number;
+  }[];
+  unclassifiedCount: number;
+  totalCases: number;
+};
+
+export type ReportFilters = {
+  from?: string;
+  to?: string;
+  courtLevel?: string;
+  caseTypeId?: number;
+  caseFamily?: string;
 };
 
 export function getLastValue<T>(items: T[], fallback: T): T {

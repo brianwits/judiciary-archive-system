@@ -8,10 +8,13 @@ export const AUDIT_ACTIONS = [
   "document_uploaded",
   "document_deleted",
   "file_missing",
+  "file_scanned",
   "role_changed",
   "file_checked_out",
   "file_checked_in",
   "user_email_updated",
+  "user_created",
+  "user_deleted",
   "registry_request_created",
   "registry_request_updated",
 ] as const;

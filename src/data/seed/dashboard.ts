@@ -27,19 +27,19 @@ export const SEED_DASHBOARD: DashboardData = {
     { id: "b2", title: "New User Training", message: "Archive system training for registry staff on May 22, 2026.", author: "HR Department", createdAt: "2026-05-16T08:00:00Z" },
   ],
   approvals: [
-    { id: "a1", title: "File Destruction Request - CIV/112/2018", requester: "Grace Akinyi", type: "Destruction", status: "pending", createdAt: "2026-05-18T10:00:00Z" },
+    { id: "a1", title: "File Destruction Request - HCCC/112/2018", requester: "Grace Akinyi", type: "Destruction", status: "pending", createdAt: "2026-05-18T10:00:00Z" },
     { id: "a2", title: "Extended Checkout - COM/234/2024", requester: "Peter Ochieng", type: "Extension", status: "pending", createdAt: "2026-05-17T15:00:00Z" },
     { id: "a3", title: "New Archive Room Allocation", requester: "David Mutua", type: "Allocation", status: "approved", createdAt: "2026-05-15T09:00:00Z" },
   ],
   alerts: [
     { id: "al1", title: "Overdue Return", message: "COM/234/2024 overdue by 4 days", severity: "danger", createdAt: "2026-05-19T08:00:00Z" },
-    { id: "al2", title: "Missing File Alert", message: "CR/567/2023 still unlocated", severity: "warning", createdAt: "2026-05-18T12:00:00Z" },
+    { id: "al2", title: "Missing File Alert", message: "MCCR/567/2023 still unlocated", severity: "warning", createdAt: "2026-05-18T12:00:00Z" },
     { id: "al3", title: "Room Capacity Warning", message: "R4 at 91% capacity", severity: "warning", createdAt: "2026-05-17T09:00:00Z" },
   ],
 };
 
 export const SEED_REGISTRY_REQUESTS: RegistryRequest[] = [
-  { id: "rr-001", caseNumber: "CR/123/2025", requestType: "Certified Copy", requester: "Adv. Kimani", status: "pending", createdAt: "2026-05-19T08:30:00Z" },
+  { id: "rr-001", caseNumber: "HCCR/123/2025", requestType: "Certified Copy", requester: "Adv. Kimani", status: "pending", createdAt: "2026-05-19T08:30:00Z" },
   { id: "rr-002", caseNumber: "FAM/089/2025", requestType: "File Inspection", requester: "Jane Wanjiru", status: "in_progress", createdAt: "2026-05-18T14:00:00Z" },
   { id: "rr-003", caseNumber: "ELC/E018/2023", requestType: "Archive Retrieval", requester: "Green Valley Ltd", status: "completed", createdAt: "2026-05-17T10:00:00Z" },
   { id: "rr-004", caseNumber: "COM/234/2024", requestType: "Party Search", requester: "Digital Corp", status: "pending", createdAt: "2026-05-19T07:00:00Z" },
@@ -88,4 +88,21 @@ export const REPORT_DATA = {
     { day: "Thu", scans: 163 },
     { day: "Fri", scans: 156 },
   ],
+  courtLevelStats: [
+    { name: "High Court", value: 22 },
+    { name: "Magistrate Court", value: 8 },
+  ],
+  familyStats: [
+    { name: "Civil", value: 10 },
+    { name: "Criminal", value: 8 },
+    { name: "Commercial", value: 6 },
+    { name: "Family", value: 6 },
+  ],
+  caseTypeStats: [
+    { caseTypeId: 19, code: "HCCC", name: "High Court Civil Case", fullLabel: "HCCC - High Court Civil Case", courtLevel: "High Court", family: "Civil", value: 10 },
+    { caseTypeId: 9, code: "HCCRC", name: "High Court Criminal Case", fullLabel: "HCCRC - High Court Criminal Case", courtLevel: "High Court", family: "Criminal", value: 6 },
+    { caseTypeId: 33, code: "MCCR", name: "Magistrate Court Criminal Case", fullLabel: "MCCR - Magistrate Court Criminal Case", courtLevel: "Magistrate Court", family: "Criminal", value: 2 },
+  ],
+  unclassifiedCount: 0,
+  totalCases: 30,
 };

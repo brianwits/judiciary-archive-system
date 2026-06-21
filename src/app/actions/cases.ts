@@ -20,7 +20,7 @@ import { mockStore } from "@/lib/data/mock-store";
 import { deleteSessionCase, saveSessionCase } from "@/lib/data/mock-session";
 import { getCaseById, getCases } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
-import type { CaseFile, CaseStatus, CaseType, CourtDivision, CourtStation } from "@/types/case";
+import type { CaseFile, CaseStatus, CourtDivision, CourtStation } from "@/types/case";
 
 export async function searchCases(query: string) {
   if (isMockDataEnabled()) {
@@ -65,7 +65,7 @@ export async function createCase(formData: FormData) {
     if (error instanceof ZodError) {
       return actionError(
         "VALIDATION_ERROR",
-        "Case number and title are required.",
+        "Case number, title, and category are required.",
         normalizeFieldErrors(error.flatten().fieldErrors),
       );
     }
@@ -91,7 +91,10 @@ export async function createCase(formData: FormData) {
         filed_date: input.filedDate,
         closed_date: input.closedDate,
         description: input.description,
-        case_type: mockFields.caseType,
+        case_type: input.caseType,
+        case_type_id: input.caseTypeId,
+        case_family: input.caseFamily,
+        case_category_code: null,
         court_station: mockFields.courtStation,
         court_division: mockFields.courtDivision,
         year: mockFields.year,
@@ -138,7 +141,7 @@ export async function updateCase(id: string, formData: FormData) {
     if (error instanceof ZodError) {
       return actionError(
         "VALIDATION_ERROR",
-        "Case number and title are required.",
+        "Case number, title, and category are required.",
         normalizeFieldErrors(error.flatten().fieldErrors),
       );
     }
@@ -163,7 +166,10 @@ export async function updateCase(id: string, formData: FormData) {
         filed_date: input.filedDate,
         closed_date: input.closedDate,
         description: input.description,
-        case_type: mockFields.caseType,
+        case_type: input.caseType,
+        case_type_id: input.caseTypeId,
+        case_family: input.caseFamily,
+        case_category_code: null,
         court_station: mockFields.courtStation,
         court_division: mockFields.courtDivision,
         year: mockFields.year,
@@ -395,7 +401,8 @@ function buildMockCase(input: ReturnType<typeof caseFormDataToInput>, userId: st
   const closedDate = input.closedDate ?? null;
   const notes = input.description ?? null;
   const year = filedDate ? new Date(filedDate).getFullYear() : new Date().getFullYear();
-  const caseType = inferCaseType(input.caseNumber);
+  const caseCategoryCode = input.caseTypeCode;
+  const caseType = input.caseType;
   const caseNo = input.caseNumber.split("/").at(-1) ?? input.caseNumber;
   const courtStation = normalizeCourtStation(input.court);
   const [plaintiff, defendant] = splitCaseTitle(input.title);
@@ -403,8 +410,17 @@ function buildMockCase(input: ReturnType<typeof caseFormDataToInput>, userId: st
   return {
     caseNumber: input.caseNumber,
     caseType,
+    caseTypeId: input.caseTypeId,
+    caseTypeCode: input.caseTypeCode,
+    caseTypeName: input.caseTypeName,
+    caseTypeFullLabel: input.caseTypeFullLabel,
+    caseFamily: input.caseFamily,
+    caseCourtLevel: input.courtLevel,
+    classificationStatus: "canonical" as const,
+    caseCategoryCode,
+    caseCategoryName: input.caseTypeName,
     courtStation,
-    courtDivision: inferCourtDivision(caseType),
+    courtDivision: input.courtLevel as CourtDivision,
     year,
     plaintiff,
     defendant,
@@ -412,7 +428,7 @@ function buildMockCase(input: ReturnType<typeof caseFormDataToInput>, userId: st
     status: input.status,
     archiveCode: buildArchiveCode({
       court: courtStation,
-      caseType,
+      caseType: input.caseTypeCode,
       year,
       caseNo,
     }),
@@ -425,24 +441,6 @@ function buildMockCase(input: ReturnType<typeof caseFormDataToInput>, userId: st
     isMissing: false,
     createdBy: userId,
   } satisfies Omit<CaseFile, "id" | "createdAt" | "updatedAt">;
-}
-
-function inferCaseType(caseNumber: string): CaseType {
-  const prefix = caseNumber.split("/")[0]?.toUpperCase();
-  if (prefix === "CR") return "Criminal";
-  if (prefix === "ELC") return "ELC";
-  if (prefix === "FAM") return "Family";
-  if (prefix === "COM") return "Commercial";
-  if (prefix === "CON") return "Constitutional";
-  if (prefix === "PRO") return "Probate";
-  return "Civil";
-}
-
-function inferCourtDivision(caseType: CaseType): CourtDivision {
-  if (caseType === "ELC") return "Environment & Land";
-  if (caseType === "Family") return "Family Division";
-  if (caseType === "Commercial") return "Commercial Division";
-  return "High Court";
 }
 
 function normalizeCourtStation(court: string): CourtStation {

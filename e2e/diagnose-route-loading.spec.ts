@@ -41,7 +41,7 @@ async function login(page: Page, email: string) {
 }
 
 test("Pinpoint which route loads poorly", async ({ page }) => {
-  await login(page, "brian.mugendi@courts.go.ke");
+  await login(page, "brian.mugendi@court.go.ke");
 
   const routes = ["/", "/cases", "/tracking", "/registry", "/archive", "/audit", "/reports", "/settings", "/users"];
 

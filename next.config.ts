@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1"],
   experimental: {
     /** Tree-shake icon / chart / component packages at compile time (smaller dev + prod bundles). */
     optimizePackageImports: ["lucide-react", "recharts", "date-fns"],
+    /** Allow the documented 25 MB case-document limit plus multipart overhead. */
+    serverActions: {
+      bodySizeLimit: "26mb",
+    },
   },
 
   /**

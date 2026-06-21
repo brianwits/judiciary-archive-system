@@ -13,10 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { FileMovement } from "@/types/movement";
+import type { OpenMovementOption } from "@/types/movement";
 
 type CheckinFormProps = {
-  openMovements: FileMovement[];
+  openMovements: OpenMovementOption[];
 };
 
 export function CheckinForm({ openMovements }: CheckinFormProps) {

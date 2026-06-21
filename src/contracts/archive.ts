@@ -10,6 +10,9 @@ import type { ArchiveLocation, ArchiveStoredCase, RoomSummary } from "@/types/ar
 import type { FileMovement } from "@/types/movement";
 import type { RegistryRequest } from "@/types/dashboard";
 import { CASE_STATUSES, type CaseStatus } from "@/types/case";
+import { getCaseCategoryCode, getCaseCategoryLabel } from "@/lib/case-category";
+import { resolveCaseType } from "@/contracts/cases";
+import { getCaseTypeDefinition } from "@/data/case-types";
 
 export function movementRowToDto(
   row: FileMovementRow & {
@@ -78,6 +81,9 @@ export type ArchiveStoredCaseRpcRow = {
   case_number: string;
   title: string;
   case_type: string | null;
+  case_type_id?: number | null;
+  case_category_code: string | null;
+  case_category_name: string | null;
   court_station: string | null;
   court_division: string | null;
   year: number | null;
@@ -93,11 +99,25 @@ export type ArchiveStoredCaseRpcRow = {
 };
 
 export function archiveStoredCaseRpcRowToDto(row: ArchiveStoredCaseRpcRow): ArchiveStoredCase {
+  const definition = getCaseTypeDefinition(row.case_type_id);
+  const caseType = resolveCaseType(row.case_type, row.case_number);
+  const caseCategoryCode = getCaseCategoryCode(row.case_category_code, row.case_number, {
+    caseType,
+    courtDivision: row.court_division,
+  });
   return {
     id: row.case_id,
     caseNumber: row.case_number,
     title: row.title ?? "",
-    caseType: row.case_type ?? "",
+    caseType,
+    caseTypeId: definition?.caseTypeId ?? null,
+    caseTypeCode: definition?.code ?? caseCategoryCode,
+    caseTypeName: definition?.caseType ?? getCaseCategoryLabel(caseCategoryCode),
+    caseTypeFullLabel: definition?.fullLabel ?? getCaseCategoryLabel(caseCategoryCode),
+    caseFamily: definition?.caseFamily ?? caseType,
+    classificationStatus: definition ? "canonical" : row.case_category_code ? "legacy" : "pending_review",
+    caseCategoryCode,
+    caseCategoryName: getCaseCategoryLabel(caseCategoryCode),
     courtStation: row.court_station ?? "",
     courtDivision: row.court_division ?? "",
     year: row.year,
@@ -114,11 +134,29 @@ export function archiveStoredCaseRpcRowToDto(row: ArchiveStoredCaseRpcRow): Arch
 
 /** Case mapped to shelf/box leaf + optional path string (`R1 › B1 › …` from `archive_locations`). */
 export function caseRowToArchiveStoredCase(row: CaseRow, storagePath: string | null): ArchiveStoredCase {
+  const definition = getCaseTypeDefinition(row.case_type_id);
+  const caseType = resolveCaseType(row.case_type, row.case_number);
+  const caseCategoryCode = getCaseCategoryCode(row.case_category_code, row.case_number, {
+    caseType,
+    courtDivision: row.court_division,
+  });
   return {
     id: row.id,
     caseNumber: row.case_number,
     title: row.title ?? "",
-    caseType: row.case_type ?? "",
+    caseType,
+    caseTypeId: definition?.caseTypeId ?? null,
+    caseTypeCode: definition?.code ?? caseCategoryCode,
+    caseTypeName: definition?.caseType ?? getCaseCategoryLabel(caseCategoryCode),
+    caseTypeFullLabel: definition?.fullLabel ?? getCaseCategoryLabel(caseCategoryCode),
+    caseFamily: definition?.caseFamily ?? row.case_family ?? caseType,
+    classificationStatus: definition
+      ? "canonical"
+      : row.case_category_code
+        ? "legacy"
+        : "pending_review",
+    caseCategoryCode,
+    caseCategoryName: getCaseCategoryLabel(caseCategoryCode),
     courtStation: row.court_station ?? "",
     courtDivision: row.court_division ?? "",
     year: row.year,

@@ -18,13 +18,15 @@ import {
 import { mapDbRoleToAppRole } from "@/lib/roles/map-db-role";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeCourtEmail } from "@/lib/email";
 import type { AuditAction, AuditLog } from "@/types/audit";
 import type { ArchiveLocation, ArchiveStoredCase, RoomSummary } from "@/types/archive";
 import type { CaseFile, CaseFilters } from "@/types/case";
+import type { ScanMatchType } from "@/contracts/scanning";
 import type { DashboardData, RegistryRequest } from "@/types/dashboard";
 import type { AuditLogRow, ArchiveLocationRow, Json, ProfileRow } from "@/types/database";
 import type { CaseDocument, DocumentCategory, OcrStatus } from "@/types/document";
-import type { FileMovement } from "@/types/movement";
+import type { FileMovement, OpenMovementOption } from "@/types/movement";
 import type { UserProfile } from "@/types/user";
 import { parseNotificationPreferences } from "@/types/notification";
 
@@ -166,7 +168,7 @@ export async function fetchUsersFromSupabase(client?: SupabaseReadClient): Promi
   return profiles.map((profile) => ({
     id: profile.id,
     fullName: profile.full_name ?? "User",
-    email: emailById.get(profile.id) ?? "",
+    email: normalizeCourtEmail(emailById.get(profile.id) ?? ""),
     pjNumber: profile.pj_number ?? null,
     department: profile.department ?? null,
     role: mapDbRoleToAppRole(profile.role),
@@ -234,6 +236,26 @@ export async function fetchCasesPageFromSupabase(
     query = query.eq("case_type", filters.caseType);
   }
 
+  if (filters?.caseTypeId) {
+    query = query.eq("case_type_id", filters.caseTypeId);
+  }
+
+  if (filters?.caseFamily) {
+    query = query.eq("case_family", filters.caseFamily);
+  }
+
+  if (filters?.classificationStatus === "canonical") {
+    query = query.not("case_type_id", "is", null);
+  } else if (filters?.classificationStatus === "pending_review") {
+    query = query.is("case_type_id", null).is("case_category_code", null);
+  } else if (filters?.classificationStatus === "legacy") {
+    query = query.is("case_type_id", null).not("case_category_code", "is", null);
+  }
+
+  if (filters?.caseCategory) {
+    query = query.eq("case_category_code", filters.caseCategory);
+  }
+
   if (filters?.courtDivision) {
     query = query.eq("court_division", filters.courtDivision);
   }
@@ -281,6 +303,28 @@ export async function fetchMovementsFromSupabase(
         : null,
     }),
   );
+}
+
+export async function fetchOpenMovementsFromSupabase(
+  client?: SupabaseReadClient,
+): Promise<OpenMovementOption[]> {
+  const supabase = client ?? await createClient();
+
+  const { data, error } = await supabase
+    .from("file_movements")
+    .select("id, case_id, destination_office, created_at, cases(case_number)")
+    .in("status", ["checked_out", "in_transit", "overdue"])
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    caseId: row.case_id,
+    caseNumber: row.cases?.case_number ?? "",
+    destinationOffice: row.destination_office,
+    createdAt: row.created_at,
+  }));
 }
 
 export async function fetchMovementsSearchFromSupabase(
@@ -800,7 +844,101 @@ export async function fetchCaseByNumberFromSupabase(caseNumber: string) {
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data ? caseRowToDto(data) : null;
+  if (data) return caseRowToDto(data);
+
+  const { data: alias, error: aliasError } = await supabase
+    .from("case_number_aliases")
+    .select("case_id")
+    .ilike("case_number", caseNumber.trim())
+    .limit(1)
+    .maybeSingle();
+
+  if (aliasError) throw new Error(aliasError.message);
+  if (!alias) return null;
+
+  const { data: aliasedCase, error: caseError } = await supabase
+    .from("cases")
+    .select("*")
+    .eq("id", alias.case_id)
+    .maybeSingle();
+
+  if (caseError) throw new Error(caseError.message);
+  return aliasedCase ? caseRowToDto(aliasedCase) : null;
+}
+
+export async function fetchCaseByScanCodeFromSupabase(
+  code: string,
+  client?: SupabaseReadClient,
+): Promise<{ caseFile: CaseFile; matchedBy: ScanMatchType } | null> {
+  const supabase = client ?? await createClient();
+  const normalized = code.trim();
+  if (!normalized) return null;
+
+  const { data, error } = await supabase.rpc("lookup_case_for_scan", {
+    scan_code: normalized,
+  });
+
+  if (!error) {
+    const row = data?.[0];
+    return row
+      ? {
+          caseFile: caseRowToDto(row),
+          matchedBy: row.matched_by as ScanMatchType,
+        }
+      : null;
+  }
+
+  if (!isMissingDbRpcError(error)) {
+    throw new Error(error.message);
+  }
+
+  const candidates = [
+    { column: "case_number", matchedBy: "case_number" as const },
+    { column: "qr_barcode", matchedBy: "qr_barcode" as const },
+    { column: "archive_code", matchedBy: "archive_code" as const },
+  ];
+
+  for (const candidate of candidates) {
+    const { data: row, error: queryError } = await supabase
+      .from("cases")
+      .select("*")
+      .ilike(candidate.column, normalized)
+      .limit(1)
+      .maybeSingle();
+
+    if (queryError) throw new Error(queryError.message);
+    if (row) {
+      return {
+        caseFile: caseRowToDto(row),
+        matchedBy: candidate.matchedBy,
+      };
+    }
+  }
+
+  const { data: alias, error: aliasError } = await supabase
+    .from("case_number_aliases")
+    .select("case_id")
+    .ilike("case_number", normalized)
+    .limit(1)
+    .maybeSingle();
+
+  if (aliasError) throw new Error(aliasError.message);
+  if (alias) {
+    const { data: row, error: caseError } = await supabase
+      .from("cases")
+      .select("*")
+      .eq("id", alias.case_id)
+      .maybeSingle();
+    if (caseError) throw new Error(caseError.message);
+    if (row) {
+      return {
+        caseFile: caseRowToDto(row),
+        matchedBy: "case_number_alias",
+      };
+    }
+  }
+
+  return null;
 }
 
 function parseReportJson(json: Json) {
@@ -812,6 +950,9 @@ function parseReportJson(json: Json) {
   const divisionStats = (d.divisionStats as Array<Record<string, Json>>) ?? [];
   const retrievalPerformance = (d.retrievalPerformance as Array<Record<string, Json>>) ?? [];
   const scanningPerformance = (d.scanningPerformance as Array<Record<string, Json>>) ?? [];
+  const courtLevelStats = (d.courtLevelStats as Array<Record<string, Json>>) ?? [];
+  const familyStats = (d.familyStats as Array<Record<string, Json>>) ?? [];
+  const caseTypeStats = (d.caseTypeStats as Array<Record<string, Json>>) ?? [];
 
   return {
     archiveGrowth: archiveGrowth.length > 0
@@ -839,13 +980,47 @@ function parseReportJson(json: Json) {
     scanningPerformance: scanningPerformance.length > 0
       ? scanningPerformance.map((s) => ({ day: String(s.day ?? ""), scans: Number(s.scans ?? 0) }))
       : [{ day: "Mon", scans: 0 }, { day: "Tue", scans: 0 }, { day: "Wed", scans: 0 }, { day: "Thu", scans: 0 }, { day: "Fri", scans: 0 }],
+    courtLevelStats: courtLevelStats.map((item) => ({
+      name: String(item.name ?? ""),
+      value: Number(item.value ?? 0),
+    })),
+    familyStats: familyStats.map((item) => ({
+      name: String(item.name ?? ""),
+      value: Number(item.value ?? 0),
+    })),
+    caseTypeStats: caseTypeStats.map((item) => ({
+      caseTypeId: item.caseTypeId == null ? null : Number(item.caseTypeId),
+      code: String(item.code ?? ""),
+      name: String(item.name ?? ""),
+      fullLabel: String(item.fullLabel ?? ""),
+      courtLevel: String(item.courtLevel ?? ""),
+      family: String(item.family ?? ""),
+      value: Number(item.value ?? 0),
+    })),
+    unclassifiedCount: Number(d.unclassifiedCount ?? 0),
+    totalCases: Number(d.totalCases ?? 0),
   };
 }
 
-export async function fetchReportDataFromSupabase(client?: SupabaseReadClient) {
+export async function fetchReportDataFromSupabase(
+  filters: {
+    from?: string;
+    to?: string;
+    courtLevel?: string;
+    caseTypeId?: number;
+    caseFamily?: string;
+  } = {},
+  client?: SupabaseReadClient,
+) {
   const supabase = client ?? await createClient();
 
-  const { data, error } = await supabase.rpc("fetch_report_data");
+  const { data, error } = await supabase.rpc("fetch_report_data", {
+    p_from: filters.from,
+    p_to: filters.to,
+    p_court_level: filters.courtLevel,
+    p_case_type_id: filters.caseTypeId,
+    p_case_family: filters.caseFamily,
+  });
   if (error) throw new Error(error.message);
 
   return parseReportJson(data);

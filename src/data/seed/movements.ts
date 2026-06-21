@@ -4,7 +4,7 @@ export const SEED_MOVEMENTS: FileMovement[] = [
   {
     id: "mov-001",
     caseId: "case-001",
-    caseNumber: "CR/123/2025",
+    caseNumber: "HCCR/123/2025",
     caseTitle: "State v. John Doe",
     checkedOutBy: "user-judge",
     checkedOutByName: "Hon. Justice Njeri",
@@ -64,7 +64,7 @@ export const SEED_MOVEMENTS: FileMovement[] = [
   {
     id: "mov-005",
     caseId: "case-003",
-    caseNumber: "CIV/456/2024",
+    caseNumber: "HCCC/456/2024",
     caseTitle: "ABC Enterprises v. XYZ Holdings",
     checkedOutBy: "user-judge",
     checkedOutByName: "Hon. Justice Njeri",

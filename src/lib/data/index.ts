@@ -9,6 +9,7 @@ import {
   fetchAuditLogsForExport,
   fetchAuditLogsFromSupabase,
   fetchCaseByNumberFromSupabase,
+  fetchCaseByScanCodeFromSupabase,
   fetchCasesFromSupabase,
   fetchCasesPageFromSupabase,
   fetchArchiveStoredCasesFromSupabase,
@@ -20,6 +21,7 @@ import {
   fetchLocationChildrenFromSupabase,
   fetchMovementsByCaseFromSupabase,
   fetchMovementsFromSupabase,
+  fetchOpenMovementsFromSupabase,
   fetchMovementsSearchFromSupabase,
   fetchRecentMovementsFromSupabase,
   fetchRegistryRequestsFromSupabase,
@@ -39,9 +41,12 @@ import type { CaseFile, CaseFilters } from "@/types/case";
 import type { DashboardData, RegistryRequest } from "@/types/dashboard";
 import type { CaseDocument, DocumentCategory } from "@/types/document";
 import type { FileMovement, MovementStatus } from "@/types/movement";
+import type { OpenMovementOption } from "@/types/movement";
 import type { UserProfile } from "@/types/user";
 import type { UserRole } from "@/types/roles";
 import { REPORT_DATA } from "@/data/seed/dashboard";
+import type { ScanMatchType } from "@/contracts/scanning";
+import type { ReportFilters } from "@/lib/reports-computations";
 
 const getCachedDashboardData = unstable_cache(
   async () => fetchDashboardFromSupabase(createAdminClient()),
@@ -76,6 +81,25 @@ const getCachedRecentMovements = unstable_cache(
   },
 );
 
+const getCachedMovements = unstable_cache(
+  async (page: number, pageSize: number) =>
+    fetchMovementsFromSupabase({ page, pageSize }, createAdminClient()),
+  ["movements-page"],
+  {
+    revalidate: 60,
+    tags: [CACHE_TAGS.movements, CACHE_TAGS.cases],
+  },
+);
+
+const getCachedOpenMovements = unstable_cache(
+  async () => fetchOpenMovementsFromSupabase(createAdminClient()),
+  ["open-movements"],
+  {
+    revalidate: 60,
+    tags: [CACHE_TAGS.movements, CACHE_TAGS.cases],
+  },
+);
+
 const getCachedUsers = unstable_cache(
   async () => fetchUsersFromSupabase(createAdminClient()),
   ["users-list"],
@@ -86,7 +110,7 @@ const getCachedUsers = unstable_cache(
 );
 
 const getCachedReportData = unstable_cache(
-  async () => fetchReportDataFromSupabase(createAdminClient()),
+  async (filters: ReportFilters) => fetchReportDataFromSupabase(filters, createAdminClient()),
   ["reports-data"],
   {
     revalidate: 300,
@@ -110,6 +134,15 @@ const getCachedAuditLogs = unstable_cache(
   {
     revalidate: 60,
     tags: [CACHE_TAGS.audit],
+  },
+);
+
+const getCachedRegistryRequests = unstable_cache(
+  async () => fetchRegistryRequestsFromSupabase(createAdminClient()),
+  ["registry-requests"],
+  {
+    revalidate: 60,
+    tags: [CACHE_TAGS.registry, CACHE_TAGS.dashboard],
   },
 );
 
@@ -229,6 +262,13 @@ export async function getCaseByNumber(caseNumber: string): Promise<CaseFile | nu
   return fetchCaseByNumberFromSupabase(caseNumber);
 }
 
+export async function getCaseByScanCode(
+  code: string,
+): Promise<{ caseFile: CaseFile; matchedBy: ScanMatchType } | null> {
+  if (isMockDataEnabled()) return mockStore.getCaseByScanCode(code);
+  return fetchCaseByScanCodeFromSupabase(code);
+}
+
 export async function getRoomSummaries(): Promise<RoomSummary[]> {
   if (isMockDataEnabled()) return mockStore.getRooms();
   return getCachedRoomSummaries();
@@ -257,7 +297,14 @@ export async function getArchiveStoredCases(opts?: {
 
 export async function getMovements(listQuery?: Partial<ListQuery>): Promise<FileMovement[]> {
   if (isMockDataEnabled()) return mockStore.getMovements();
-  return fetchMovementsFromSupabase(listQuery);
+  const page = listQuery?.page ?? DEFAULT_PAGE;
+  const pageSize = listQuery?.pageSize ?? DEFAULT_PAGE_SIZE;
+  return getCachedMovements(page, pageSize);
+}
+
+export async function getOpenMovements(): Promise<OpenMovementOption[]> {
+  if (isMockDataEnabled()) return mockStore.getOpenMovements();
+  return getCachedOpenMovements();
 }
 
 export async function getRecentMovements(limit = 5): Promise<FileMovement[]> {
@@ -361,12 +408,12 @@ export async function getUsers(): Promise<UserProfile[]> {
 
 export async function getRegistryRequests(): Promise<RegistryRequest[]> {
   if (isMockDataEnabled()) return mockStore.getRegistryRequests();
-  return fetchRegistryRequestsFromSupabase();
+  return getCachedRegistryRequests();
 }
 
-export async function getReportData() {
+export async function getReportData(filters: ReportFilters = {}) {
   if (isMockDataEnabled()) return REPORT_DATA;
-  return getCachedReportData();
+  return getCachedReportData(filters);
 }
 
 export async function getLocationById(id: string) {

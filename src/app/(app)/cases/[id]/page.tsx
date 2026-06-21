@@ -79,7 +79,14 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p>
-                  <span className="font-medium">Type:</span> {caseFile.caseType}
+                  <span className="font-medium">Case type:</span> {caseFile.caseTypeFullLabel}
+                </p>
+                <p>
+                  <span className="font-medium">Case family:</span> {caseFile.caseFamily}
+                </p>
+                <p>
+                  <span className="font-medium">Classification:</span>{" "}
+                  {caseFile.classificationStatus.replace("_", " ")}
                 </p>
                 <p>
                   <span className="font-medium">Division:</span> {caseFile.courtDivision}

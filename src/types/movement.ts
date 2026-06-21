@@ -22,3 +22,11 @@ export type FileMovement = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type OpenMovementOption = {
+  id: string;
+  caseId: string;
+  caseNumber: string;
+  destinationOffice: string;
+  createdAt: string;
+};

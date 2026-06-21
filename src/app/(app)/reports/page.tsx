@@ -10,7 +10,9 @@ import {
   TablePanelSkeleton,
 } from "@/components/shared/page-skeletons";
 import { LazyReportCharts } from "@/components/reports/lazy-report-charts";
+import { ReportFilters } from "@/components/reports/report-filters";
 import { getReportData } from "@/lib/data";
+import type { ReportFilters as ReportFilterValues } from "@/lib/reports-computations";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,13 @@ export const metadata: Metadata = {
     "Judiciary archive performance, movement control, and digitization trends.",
 };
 
-export default async function ReportsPage() {
+type ReportsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
+  const params = await searchParams;
+  const filters = parseReportFilters(params);
   return (
     <div className="reports-analytics-page space-y-8">
       <PageHeader
@@ -40,17 +48,37 @@ export default async function ReportsPage() {
           </>
         }
       />
+      <Suspense fallback={<div className="h-24 rounded-xl border bg-card" />}>
+        <ReportFilters />
+      </Suspense>
       <Suspense fallback={<ReportsPageSkeleton />}>
-        <ReportsContent />
+        <ReportsContent filters={filters} />
       </Suspense>
     </div>
   );
 }
 
-async function ReportsContent() {
-  const data = await getReportData();
+async function ReportsContent({ filters }: { filters: ReportFilterValues }) {
+  const data = await getReportData(filters);
 
   return <LazyReportCharts data={data} />;
+}
+
+function parseReportFilters(params: Record<string, string | string[] | undefined>): ReportFilterValues {
+  const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  const from = first(params.from);
+  const to = first(params.to);
+  const courtLevel = first(params.courtLevel);
+  const caseFamily = first(params.caseFamily);
+  const caseTypeId = Number(first(params.caseTypeId));
+  return {
+    ...(from && datePattern.test(from) ? { from } : {}),
+    ...(to && datePattern.test(to) ? { to } : {}),
+    ...(["High Court", "Magistrate Court"].includes(courtLevel ?? "") ? { courtLevel } : {}),
+    ...(caseFamily ? { caseFamily } : {}),
+    ...(Number.isInteger(caseTypeId) && caseTypeId > 0 ? { caseTypeId } : {}),
+  };
 }
 
 function ReportsPageSkeleton() {

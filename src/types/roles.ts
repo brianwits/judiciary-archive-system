@@ -4,6 +4,7 @@ export const USER_ROLES = [
   "registry_clerk",
   "archivist",
   "deputy_registrar",
+  "magistrate",
   "judge",
 ] as const;
 
@@ -15,6 +16,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   registry_clerk: "Registry Clerk",
   archivist: "Archivist",
   deputy_registrar: "Deputy Registrar",
+  magistrate: "Magistrate",
   judge: "Judge",
 };
 
@@ -75,6 +77,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "audit_logs",
     "registry_ops",
   ],
+  magistrate: ["view_cases", "file_movement", "reports"],
   judge: ["view_cases", "file_movement", "reports"],
 };
 

@@ -5,6 +5,7 @@ import { fetchProfileRowForUser } from "@/lib/supabase/fetch-profile";
 import { isMockDataEnabled } from "@/lib/config";
 import { mockStore } from "@/lib/data/mock-store";
 import { DEMO_PASSWORD, MOCK_USERS } from "@/data/seed/users";
+import { normalizeCourtEmail } from "@/lib/email";
 import { parseNotificationPreferences } from "@/types/notification";
 import { mapDbRoleToAppRole } from "@/lib/roles/map-db-role";
 import {
@@ -51,7 +52,7 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
   return {
     id: profile.id,
     fullName: profile.full_name ?? user.email ?? "User",
-    email: user.email ?? "",
+    email: normalizeCourtEmail(user.email ?? ""),
     pjNumber: profile.pj_number ?? null,
     department: profile.department ?? null,
     role,
@@ -63,8 +64,9 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
 });
 
 export async function mockSignIn(email: string, password: string): Promise<{ error?: string }> {
-  const user = MOCK_USERS.find((u) => u.email === email);
-  if (!user || password !== DEMO_PASSWORD) {
+  const normalizedEmail = normalizeCourtEmail(email);
+  const user = MOCK_USERS.find((u) => normalizeCourtEmail(u.email) === normalizedEmail);
+  if (!user || password !== (user.password ?? DEMO_PASSWORD)) {
     return { error: "Invalid email or password." };
   }
   if (!user.isActive) {

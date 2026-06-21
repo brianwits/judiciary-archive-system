@@ -3,6 +3,7 @@ import type { Permission } from "@/types/roles";
 /** Route permissions only — safe for middleware (no React/icon imports). */
 const GATED_NAV_ROUTES: { href: string; permission: Permission }[] = [
   { href: "/tracking", permission: "file_movement" },
+  { href: "/scanning", permission: "upload_docs" },
   { href: "/registry", permission: "registry_ops" },
   { href: "/reports", permission: "reports" },
   { href: "/audit", permission: "audit_logs" },

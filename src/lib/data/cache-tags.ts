@@ -6,5 +6,6 @@ export const CACHE_TAGS = {
   documents: "documents",
   movements: "movements",
   reports: "reports",
+  registry: "registry",
   users: "users",
 } as const;
