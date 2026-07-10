@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+
 export default defineConfig({
   testDir: ".",
   testMatch: "**/*.spec.ts",
@@ -6,9 +7,16 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+  },
+  webServer: {
+    command: "npx next dev -p 3000",
+    port: 3000,
+    timeout: 120_000,
+    reuseExistingServer: true,
+    cwd: process.cwd(),
   },
   projects: [{
     name: "chromium",

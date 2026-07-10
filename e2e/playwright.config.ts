@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: process.env.CI ? "github" : "list",
 
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -31,7 +31,7 @@ export default defineConfig({
   // true so Playwright connects to the already-running instance.
   webServer: {
     command: "echo 'using existing server'",
-    url: "http://127.0.0.1:3000/",
+    url: "http://localhost:3000/",
     reuseExistingServer: true,
     timeout: 15_000,
   },

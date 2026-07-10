@@ -75,3 +75,57 @@
 - [`scripts/seed-users.mjs`](scripts/seed-users.mjs) now **`upsert`** profiles on `id`.
 - Migration [`supabase/migrations/20260527000001_backfill_profiles_for_auth_users.sql`](supabase/migrations/20260527000001_backfill_profiles_for_auth_users.sql) backfills orphan `auth.users`.
 - Login UI banner + README troubleshooting for missing-profile bounce; **`npm run db:types`** reminder after migrations.
+
+---
+
+## Session summary — 2026-07-10
+
+### Family/FAM case type removed + dropdowns to names only
+
+**Core taxonomy**
+- Removed `"Family"` from `CASE_FAMILIES`, `CASE_TYPES`, `COURT_DIVISIONS`
+- Removed 6 Family case type definitions (IDs 22, 23, 25, 26, 62, 108)
+- Renamed `HCFP&A` → `"High Court Probate and Administration"`
+- Added ELC court group (IDs 401, 402, 403, 405) to case form, reports, taxonomy breakdown
+- Changed all case-type dropdowns to show name only (`caseType`) instead of code + name (`fullLabel`)
+
+**Type system, lib layer, seed data**
+- Removed `CASE_FAMILIES`, `"Family Division"` from `COURT_DIVISIONS`
+- Removed `caseFamily` from `CaseFilters`, `ReportFilters`, DTO schemas, form input types
+- Removed `FAM` prefix from `inferCaseType`; updated `legacyCaseTypeForFamily` (Children & Protection → Civil)
+- Removed Family from case-category mappings, case-filtering, supabase-queries, actions
+- Removed `FAM/089/2025` case, movement, registry request from seed data
+- Renamed Room C → `"Succession Cases"`; removed `HC_FAMILY` / Family from dashboard stats
+- Removed `familyStats` from `ReportData`, `family` from `caseTypeStats`
+
+**UI Components**
+- Removed Family column from cases table and search results
+- Removed Family filter from case-filters, report-filters
+- Removed Family detail from case detail page, archive storage, scanning console
+- Removed `familyStats` section from taxonomy breakdown report
+
+**3 caseFamily field fixes**
+- Fixed missing `caseFamily` in `archive.ts` (`caseRowToArchiveStoredCase` + `archiveStoredCaseRpcRowToDto`)
+- Fixed missing `caseFamily` in `mock-store.ts` (`getArchiveStoredCases`)
+
+**Tests**
+- Updated authoritative-case-types: 67 total (33 Magistrate, 30 High Court, 4 ELC)
+- Updated case-category, case-filtering, reports-parsing tests
+- All 283 vitest tests passing
+
+**Production migration**
+- Created `supabase/migrations/20260710000000_deactivate_family_case_types.sql`
+- Deactivated IDs 22, 23, 25, 26, 62, 108 in production (`active = false`)
+- Verified: 0 production cases affected by cleanup
+
+**Build**
+- `npx next build`: pass, no type errors
+- All routes compiled: static `/login`, dynamic `/audit`, `/cases`, `/cases/[id]`, `/cases/new`, `/registry`, `/reports`, `/scanning`, `/search`, `/settings`, `/tracking`, `/users`
+
+**Git**
+- Commit `3d4d9a2`: 44 files changed (37 modified + 1 deleted + 6 new)
+
+**E2E Playwright config fixes**
+- Fixed `baseURL` from `127.0.0.1:3000` → `localhost:3000` in both `e2e/playwright-no-ws.config.ts` and `e2e/playwright.config.ts`
+- Added `webServer` config to `playwright-no-ws.config.ts` for auto server lifecycle management
+- Login-flow tests: 10 passed, 1 pre-existing warmup timeout (matches baseline)

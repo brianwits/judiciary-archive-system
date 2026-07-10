@@ -42,6 +42,14 @@ const FAMILY_BY_CATEGORY: Record<string, CaseType> = {
   Land: "ELC",
   Labour: "Civil",
   Tribunal: "Civil",
+  "Family": "Civil",
+  "Children & Protection": "Civil",
+  "Employment & Labour": "Civil",
+  "Anti-Corruption & Economic Crimes": "Criminal",
+  "Election": "Criminal",
+  "Judicial Review": "Civil",
+  "Gender Justice": "Civil",
+  "Tribunal & Regulatory": "Civil",
 };
 
 const PREFERRED_CATEGORY_BY_FAMILY: Partial<Record<CaseType, string>> = {

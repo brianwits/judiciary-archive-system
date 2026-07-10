@@ -48,6 +48,14 @@ export function inferCaseType(caseNumber: string): CaseType {
   if (prefix === "CON") return "Constitutional";
   if (prefix === "PRO") return "Probate";
   if (prefix === "CIV" || prefix === "MCCC") return "Civil";
+  if (prefix === "MCPC") return "Civil";
+  if (prefix === "MCEMP") return "Civil";
+  if (prefix === "MCAC") return "Criminal";
+  if (prefix === "MCEO") return "Criminal";
+  if (prefix === "HCJR") return "Civil";
+  if (prefix === "HCCHRPET") return "Constitutional";
+  if (prefix === "MGJC") return "Civil";
+  if (prefix === "MCTRBC") return "Civil";
   return "Civil";
 }
 
