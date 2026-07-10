@@ -25,7 +25,6 @@ export function casesToCsvRows(
     caseTypeCode: string;
     caseTypeName: string;
     caseTypeFullLabel: string;
-    caseFamily: string;
     classificationStatus: string;
     caseCategoryCode: string;
     caseCategoryName: string;
@@ -45,7 +44,6 @@ export function casesToCsvRows(
       "case_type_code",
       "case_type_name",
       "case_type_full_label",
-      "case_family",
       "classification_status",
       "case_category_code",
       "case_category_name",
@@ -63,7 +61,6 @@ export function casesToCsvRows(
       c.caseTypeCode,
       c.caseTypeName,
       c.caseTypeFullLabel,
-      c.caseFamily,
       c.classificationStatus,
       c.caseCategoryCode,
       c.caseCategoryName,

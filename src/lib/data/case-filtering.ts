@@ -19,7 +19,6 @@ export function filterCases(
         c.caseTypeCode.toLowerCase().includes(q) ||
         c.caseTypeName.toLowerCase().includes(q) ||
         c.caseTypeFullLabel.toLowerCase().includes(q) ||
-        c.caseFamily.toLowerCase().includes(q) ||
         c.caseCategoryCode.toLowerCase().includes(q) ||
         c.caseCategoryName.toLowerCase().includes(q) ||
         (aliasesByCaseId.get(c.id) ?? []).some((alias) => alias.toLowerCase().includes(q)),
@@ -28,7 +27,6 @@ export function filterCases(
 
   if (filters?.caseType) result = result.filter((c) => c.caseType === filters.caseType);
   if (filters?.caseTypeId) result = result.filter((c) => c.caseTypeId === filters.caseTypeId);
-  if (filters?.caseFamily) result = result.filter((c) => c.caseFamily === filters.caseFamily);
   if (filters?.classificationStatus) {
     result = result.filter((c) => c.classificationStatus === filters.classificationStatus);
   }

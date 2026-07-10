@@ -16,7 +16,6 @@ export const caseFiltersSchema = z.object({
   q: z.string().trim().optional(),
   caseType: caseTypeSchema.optional(),
   caseTypeId: z.coerce.number().int().positive().optional(),
-  caseFamily: z.string().trim().optional(),
   year: z.coerce.number().int().min(1900).max(3000).optional(),
   status: caseStatusSchema.optional(),
   courtDivision: courtDivisionSchema.optional(),
@@ -36,6 +35,7 @@ export const caseFormSchema = z.object({
 
 export type CaseFiltersContract = z.infer<typeof caseFiltersSchema>;
 export type CaseFormInput = {
+  caseNumberRaw: string;
   caseNumber: string;
   title: string;
   court: string;
@@ -43,7 +43,6 @@ export type CaseFormInput = {
   caseTypeCode: string;
   caseTypeName: string;
   caseTypeFullLabel: string;
-  caseFamily: string;
   courtLevel: string;
   caseType: CaseType;
   status: "open" | "closed" | "archived";
@@ -83,9 +82,11 @@ export function caseFormDataToInput(formData: FormData): CaseFormInput {
       { code: "custom", path: ["caseTypeId"], message: "Select an active case type." },
     ]);
   }
+  const rawCaseNumber = parsed.caseNumber;
   const caseNumber = canonicalizeCaseNumberWithPrefix(parsed.caseNumber, definition.code);
 
   return {
+    caseNumberRaw: rawCaseNumber,
     caseNumber,
     title: parsed.title,
     court: parsed.court ?? "",
@@ -93,7 +94,6 @@ export function caseFormDataToInput(formData: FormData): CaseFormInput {
     caseTypeCode: definition.code,
     caseTypeName: definition.caseType,
     caseTypeFullLabel: definition.fullLabel,
-    caseFamily: definition.caseFamily,
     courtLevel: definition.courtLevel,
     caseType: legacyCaseTypeForFamily(definition.caseFamily),
     status: parsed.status,
@@ -117,10 +117,18 @@ export function caseRowToDto(row: CaseRow): CaseDto {
     (row.filed_date
       ? new Date(row.filed_date).getFullYear()
       : new Date(row.created_at).getFullYear());
+  const caseNumberRaw = row.case_number_raw ?? row.case_number;
+  const caseNumberNormalized = row.case_number_normalized ?? caseNumberRaw.trim().toLowerCase();
 
   return {
     id: row.id,
     caseNumber: row.case_number,
+    caseNumberRaw,
+    caseNumberNormalized,
+    trackingNumber: row.tracking_number,
+    sourceCaseId: row.source_case_id,
+    sourceSystem: row.source_system,
+    sourceUpdatedAt: row.source_updated_at,
     caseType,
     caseTypeId: definition?.caseTypeId ?? null,
     caseTypeCode: definition?.code ?? caseCategoryCode,
@@ -169,7 +177,6 @@ function parseCourtDivision(value: string | null, caseType: CaseType): CourtDivi
     return value as CourtDivision;
   }
   if (caseType === "ELC") return "Environment & Land";
-  if (caseType === "Family") return "Family Division";
   if (caseType === "Commercial") return "Commercial Division";
   if (caseType === "Traffic" || caseType === "Succession") return "Magistrate Court";
   return "High Court";

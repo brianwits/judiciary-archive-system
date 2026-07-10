@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
-import { bodyFont, displayFont, monoFont } from "@/lib/fonts";
 
 // Use configured Supabase URL for preconnect, with the hosted default as fallback.
 const SUPABASE_URL =
@@ -45,17 +44,11 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <head>
         {/* Preconnect to critical third-party origins */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
         <link rel="preconnect" href={SUPABASE_URL} />
         {/* DNS prefetch for additional origins */}
         <link rel="dns-prefetch" href={SUPABASE_URL} />

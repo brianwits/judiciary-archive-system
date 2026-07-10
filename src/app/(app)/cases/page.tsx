@@ -18,7 +18,6 @@ type CasesPageProps = {
   searchParams: Promise<{
     q?: string;
     caseTypeId?: string;
-    caseFamily?: string;
     classification?: string;
     year?: string;
     status?: string;
@@ -33,7 +32,6 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
 
   if (params.q) filters.q = params.q;
   if (params.caseTypeId) filters.caseTypeId = Number(params.caseTypeId);
-  if (params.caseFamily) filters.caseFamily = params.caseFamily;
   if (["canonical", "legacy", "pending_review"].includes(params.classification ?? "")) {
     filters.classificationStatus = params.classification as CaseFiltersType["classificationStatus"];
   }
@@ -73,7 +71,7 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
 
       <Suspense fallback={<TablePanelSkeleton rows={8} />}>
         <DynamicCasesPageClient
-          key={[result.page, params.q, params.caseTypeId, params.caseFamily, params.classification, params.year, params.status].join("-")}
+          key={[result.page, params.q, params.caseTypeId, params.classification, params.year, params.status].join("-")}
           cases={result.items}
           docCountByCaseId={docCountByCaseId}
           role={profile!.role}
@@ -84,11 +82,9 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
         basePath="/cases"
         page={result.page}
         pageSize={result.pageSize}
-        total={result.total}
-        searchParams={{
+        total={result.total}          searchParams={{
           q: params.q,
           caseTypeId: params.caseTypeId,
-          caseFamily: params.caseFamily,
           classification: params.classification,
           year: params.year,
           status: params.status,

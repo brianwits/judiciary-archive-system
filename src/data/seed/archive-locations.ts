@@ -3,7 +3,7 @@ import type { ArchiveLocation, RoomSummary } from "@/types/archive";
 export const SEED_LOCATIONS: ArchiveLocation[] = [
   { id: "room-r1", parentId: null, level: "room", code: "R1", label: "Room A - Civil Cases", capacity: 500, occupiedCount: 423, category: "Civil Cases" },
   { id: "room-r2", parentId: null, level: "room", code: "R2", label: "Room B - Criminal Cases", capacity: 400, occupiedCount: 248, category: "Criminal Cases" },
-  { id: "room-r3", parentId: null, level: "room", code: "R3", label: "Room C - Family Cases", capacity: 300, occupiedCount: 135, category: "Family Cases" },
+  { id: "room-r3", parentId: null, level: "room", code: "R3", label: "Room C - Succession Cases", capacity: 300, occupiedCount: 135, category: "Succession Cases" },
   { id: "room-r4", parentId: null, level: "room", code: "R4", label: "Room D - Commercial Cases", capacity: 350, occupiedCount: 319, category: "Commercial Cases" },
   { id: "room-r5", parentId: null, level: "room", code: "R5", label: "Room E - Constitutional", capacity: 200, occupiedCount: 156, category: "Constitutional" },
   { id: "room-r6", parentId: null, level: "room", code: "R6", label: "Room F - Probate & Misc", capacity: 450, occupiedCount: 149, category: "Probate & Misc" },

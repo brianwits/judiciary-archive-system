@@ -60,6 +60,9 @@ const FILE_ACCEPT = ALLOWED_DOCUMENT_TYPES.join(",");
 
 const MATCH_LABELS: Record<ScanLookupResult["matchedBy"], string> = {
   case_number: "Case number",
+  case_number_raw: "Raw case number",
+  case_number_normalized: "Normalized case number",
+  tracking_number: "Tracking number",
   case_number_alias: "Previous case number",
   qr_barcode: "QR / barcode",
   archive_code: "Archive code",
@@ -107,13 +110,13 @@ export function ScanningConsole() {
             Find case file
           </CardTitle>
           <CardDescription>
-            Enter a case number, QR / barcode, or archive code.
+            Enter a case number, tracking number, QR / barcode, or archive code.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="scan-code">Case identifier</Label>
+              <Label htmlFor="scan-code">Case or tracking identifier</Label>
               <div className="relative">
                 <Barcode className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -195,7 +198,6 @@ function CaseScanHeader({
           <Detail label="Archive code" value={caseFile.archiveCode} mono />
           <Detail label="Division" value={caseFile.courtDivision} />
           <Detail label="Case type" value={caseFile.caseTypeFullLabel} />
-          <Detail label="Family" value={caseFile.caseFamily} />
         </div>
         <Link
           href={`/cases/${caseFile.id}`}

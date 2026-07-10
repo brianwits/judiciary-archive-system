@@ -240,10 +240,6 @@ export async function fetchCasesPageFromSupabase(
     query = query.eq("case_type_id", filters.caseTypeId);
   }
 
-  if (filters?.caseFamily) {
-    query = query.eq("case_family", filters.caseFamily);
-  }
-
   if (filters?.classificationStatus === "canonical") {
     query = query.not("case_type_id", "is", null);
   } else if (filters?.classificationStatus === "pending_review") {
@@ -837,14 +833,37 @@ export async function insertAuditLog(
 
 export async function fetchCaseByNumberFromSupabase(caseNumber: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const normalized = caseNumber.trim().toLowerCase();
+
+  const primary = await supabase.from("cases").select("*").eq("case_number", caseNumber).maybeSingle();
+  if (primary.error) throw new Error(primary.error.message);
+  if (primary.data) return caseRowToDto(primary.data);
+
+  const rawMatch = await supabase
     .from("cases")
     .select("*")
-    .eq("case_number", caseNumber)
+    .eq("case_number_raw", caseNumber)
     .maybeSingle();
+  if (rawMatch.error) throw new Error(rawMatch.error.message);
+  if (rawMatch.data) return caseRowToDto(rawMatch.data);
 
-  if (error) throw new Error(error.message);
-  if (data) return caseRowToDto(data);
+  if (normalized) {
+    const normalizedMatch = await supabase
+      .from("cases")
+      .select("*")
+      .eq("case_number_normalized", normalized)
+      .maybeSingle();
+    if (normalizedMatch.error) throw new Error(normalizedMatch.error.message);
+    if (normalizedMatch.data) return caseRowToDto(normalizedMatch.data);
+
+    const trackingMatch = await supabase
+      .from("cases")
+      .select("*")
+      .eq("tracking_number", caseNumber.trim())
+      .maybeSingle();
+    if (trackingMatch.error) throw new Error(trackingMatch.error.message);
+    if (trackingMatch.data) return caseRowToDto(trackingMatch.data);
+  }
 
   const { data: alias, error: aliasError } = await supabase
     .from("case_number_aliases")
@@ -894,6 +913,9 @@ export async function fetchCaseByScanCodeFromSupabase(
 
   const candidates = [
     { column: "case_number", matchedBy: "case_number" as const },
+    { column: "case_number_raw", matchedBy: "case_number_raw" as const },
+    { column: "case_number_normalized", matchedBy: "case_number_normalized" as const },
+    { column: "tracking_number", matchedBy: "tracking_number" as const },
     { column: "qr_barcode", matchedBy: "qr_barcode" as const },
     { column: "archive_code", matchedBy: "archive_code" as const },
   ];
@@ -941,7 +963,8 @@ export async function fetchCaseByScanCodeFromSupabase(
   return null;
 }
 
-function parseReportJson(json: Json) {
+/** @internal exported for testing only. */
+export function parseReportJson(json: Json) {
   const d = json as Record<string, Json>;
 
   const archiveGrowth = (d.archiveGrowth as Array<Record<string, Json>>) ?? [];
@@ -951,8 +974,8 @@ function parseReportJson(json: Json) {
   const retrievalPerformance = (d.retrievalPerformance as Array<Record<string, Json>>) ?? [];
   const scanningPerformance = (d.scanningPerformance as Array<Record<string, Json>>) ?? [];
   const courtLevelStats = (d.courtLevelStats as Array<Record<string, Json>>) ?? [];
-  const familyStats = (d.familyStats as Array<Record<string, Json>>) ?? [];
   const caseTypeStats = (d.caseTypeStats as Array<Record<string, Json>>) ?? [];
+  const caseCategoryStats = (d.caseCategoryStats as Array<Record<string, Json>>) ?? [];
 
   return {
     archiveGrowth: archiveGrowth.length > 0
@@ -984,17 +1007,18 @@ function parseReportJson(json: Json) {
       name: String(item.name ?? ""),
       value: Number(item.value ?? 0),
     })),
-    familyStats: familyStats.map((item) => ({
-      name: String(item.name ?? ""),
-      value: Number(item.value ?? 0),
-    })),
     caseTypeStats: caseTypeStats.map((item) => ({
       caseTypeId: item.caseTypeId == null ? null : Number(item.caseTypeId),
       code: String(item.code ?? ""),
       name: String(item.name ?? ""),
       fullLabel: String(item.fullLabel ?? ""),
       courtLevel: String(item.courtLevel ?? ""),
-      family: String(item.family ?? ""),
+      value: Number(item.value ?? 0),
+    })),
+    caseCategoryStats: caseCategoryStats.map((item) => ({
+      categoryCode: String(item.categoryCode ?? ""),
+      categoryName: String(item.categoryName ?? ""),
+      courtLevel: String(item.courtLevel ?? ""),
       value: Number(item.value ?? 0),
     })),
     unclassifiedCount: Number(d.unclassifiedCount ?? 0),
@@ -1008,7 +1032,6 @@ export async function fetchReportDataFromSupabase(
     to?: string;
     courtLevel?: string;
     caseTypeId?: number;
-    caseFamily?: string;
   } = {},
   client?: SupabaseReadClient,
 ) {
@@ -1019,7 +1042,6 @@ export async function fetchReportDataFromSupabase(
     p_to: filters.to,
     p_court_level: filters.courtLevel,
     p_case_type_id: filters.caseTypeId,
-    p_case_family: filters.caseFamily,
   });
   if (error) throw new Error(error.message);
 

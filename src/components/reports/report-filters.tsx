@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CASE_FAMILIES, CASE_TYPE_DEFINITIONS } from "@/data/case-types";
+import { CASE_TYPE_DEFINITIONS } from "@/data/case-types";
 
 export function ReportFilters() {
   const router = useRouter();
@@ -36,16 +36,7 @@ export function ReportFilters() {
             <SelectItem value="">All courts</SelectItem>
             <SelectItem value="High Court">High Court</SelectItem>
             <SelectItem value="Magistrate Court">Magistrate Court</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Family</Label>
-        <Select value={searchParams.get("caseFamily") ?? ""} onValueChange={(value) => update("caseFamily", value ?? "")}>
-          <SelectTrigger className="w-full"><SelectValue placeholder="All families" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All families</SelectItem>
-            {CASE_FAMILIES.map((family) => <SelectItem key={family} value={family}>{family}</SelectItem>)}
+            <SelectItem value="Environment and Land Court">Environment &amp; Land Court</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -56,7 +47,7 @@ export function ReportFilters() {
           <SelectContent>
             <SelectItem value="">All types</SelectItem>
             {CASE_TYPE_DEFINITIONS.map((definition) => (
-              <SelectItem key={definition.caseTypeId} value={String(definition.caseTypeId)}>{definition.fullLabel}</SelectItem>
+              <SelectItem key={definition.caseTypeId} value={String(definition.caseTypeId)}>{definition.caseType}</SelectItem>
             ))}
           </SelectContent>
         </Select>

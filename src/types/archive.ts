@@ -1,6 +1,15 @@
 import type { CaseStatus } from "@/types/case";
 
-export const LOCATION_LEVELS = ["room", "bay", "rack", "shelf", "box"] as const;
+export const LOCATION_LEVELS = [
+  "station",
+  "room",
+  "section",
+  "bay",
+  "rack",
+  "shelf",
+  "box",
+  "bundle",
+] as const;
 export type LocationLevel = (typeof LOCATION_LEVELS)[number];
 
 /** Case file physically assigned to `archive_locations` (dashboard / archive inventory). */
@@ -40,6 +49,8 @@ export type ArchiveLocation = {
   capacity: number;
   occupiedCount: number;
   category?: string;
+  stationId?: string | null;
+  active?: boolean;
 };
 
 export type RoomSummary = {

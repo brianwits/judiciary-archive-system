@@ -90,12 +90,12 @@ export function CaseForm({ mode, initial }: CaseFormProps) {
             <SelectValue placeholder="Select case type" />
           </SelectTrigger>
           <SelectContent>
-            {(["Magistrate Court", "High Court"] as const).map((courtLevel) => (
+            {(["Magistrate Court", "High Court", "Environment and Land Court"] as const).map((courtLevel) => (
               <SelectGroup key={courtLevel}>
                 <SelectLabel>{courtLevel}</SelectLabel>
                 {CASE_TYPE_DEFINITIONS.filter((definition) => definition.courtLevel === courtLevel).map((definition) => (
                   <SelectItem key={definition.caseTypeId} value={String(definition.caseTypeId)}>
-                    {definition.fullLabel}
+                    {definition.caseType}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -104,7 +104,7 @@ export function CaseForm({ mode, initial }: CaseFormProps) {
         </Select>
         {selectedType && (
           <p className="text-xs text-muted-foreground">
-            Family: {selectedType.caseFamily} · Court level: {selectedType.courtLevel}
+            Code: {selectedType.code} · Court level: {selectedType.courtLevel}
           </p>
         )}
       </div>

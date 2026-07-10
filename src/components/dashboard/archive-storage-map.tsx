@@ -106,10 +106,6 @@ export function ArchiveStorageMap({ rooms, storedCases, matchingTotal }: Archive
                         <span aria-hidden className="text-border">
                           •
                         </span>
-                        <span>{row.caseFamily}</span>
-                        <span aria-hidden className="text-border">
-                          •
-                        </span>
                         <span>{row.courtStation}</span>
                         <span aria-hidden className="text-border">
                           •

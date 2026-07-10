@@ -70,13 +70,11 @@ function parseReportFilters(params: Record<string, string | string[] | undefined
   const from = first(params.from);
   const to = first(params.to);
   const courtLevel = first(params.courtLevel);
-  const caseFamily = first(params.caseFamily);
   const caseTypeId = Number(first(params.caseTypeId));
   return {
     ...(from && datePattern.test(from) ? { from } : {}),
     ...(to && datePattern.test(to) ? { to } : {}),
-    ...(["High Court", "Magistrate Court"].includes(courtLevel ?? "") ? { courtLevel } : {}),
-    ...(caseFamily ? { caseFamily } : {}),
+    ...(["High Court", "Magistrate Court", "Environment and Land Court"].includes(courtLevel ?? "") ? { courtLevel } : {}),
     ...(Number.isInteger(caseTypeId) && caseTypeId > 0 ? { caseTypeId } : {}),
   };
 }

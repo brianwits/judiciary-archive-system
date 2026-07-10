@@ -33,7 +33,6 @@ describe("case category resolution", () => {
   });
 
   it("maps canonical category codes back to their broad case family", () => {
-    expect(getCaseTypeFromCategoryCode("HC_FAMILY")).toBe("Family");
     expect(getCaseTypeFromCategoryCode("MC_TRAFFIC")).toBe("Traffic");
   });
 });

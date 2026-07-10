@@ -55,6 +55,8 @@ export type Database = {
           level: Database["public"]["Enums"]["location_level"]
           occupied_count: number
           parent_id: string | null
+          station_id: string | null
+          active: boolean
         }
         Insert: {
           capacity?: number
@@ -66,6 +68,8 @@ export type Database = {
           level: Database["public"]["Enums"]["location_level"]
           occupied_count?: number
           parent_id?: string | null
+          station_id?: string | null
+          active?: boolean
         }
         Update: {
           capacity?: number
@@ -77,6 +81,8 @@ export type Database = {
           level?: Database["public"]["Enums"]["location_level"]
           occupied_count?: number
           parent_id?: string | null
+          station_id?: string | null
+          active?: boolean
         }
         Relationships: [
           {
@@ -157,6 +163,10 @@ export type Database = {
           judicial_officer: string | null
           notes: string | null
           source: string | null
+          source_event_id: string | null
+          source_id: string | null
+          source_system: string | null
+          source_updated_at: string | null
         }
         Insert: {
           activity_date?: string | null
@@ -169,6 +179,10 @@ export type Database = {
           judicial_officer?: string | null
           notes?: string | null
           source?: string | null
+          source_event_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          source_updated_at?: string | null
         }
         Update: {
           activity_date?: string | null
@@ -181,6 +195,10 @@ export type Database = {
           judicial_officer?: string | null
           notes?: string | null
           source?: string | null
+          source_event_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          source_updated_at?: string | null
         }
         Relationships: [
           {
@@ -209,6 +227,7 @@ export type Database = {
           parent_category: string
           requires_registry_verification: boolean
           source_url: string | null
+          source_id: string | null
           updated_at: string
         }
         Insert: {
@@ -227,6 +246,7 @@ export type Database = {
           parent_category: string
           requires_registry_verification?: boolean
           source_url?: string | null
+          source_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -245,6 +265,7 @@ export type Database = {
           parent_category?: string
           requires_registry_verification?: boolean
           source_url?: string | null
+          source_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -368,6 +389,9 @@ export type Database = {
           metadata_key: string
           metadata_type: string | null
           metadata_value: string | null
+          source_id: string | null
+          source_system: string | null
+          source_updated_at: string | null
         }
         Insert: {
           case_id: string
@@ -376,6 +400,9 @@ export type Database = {
           metadata_key: string
           metadata_type?: string | null
           metadata_value?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          source_updated_at?: string | null
         }
         Update: {
           case_id?: string
@@ -384,6 +411,9 @@ export type Database = {
           metadata_key?: string
           metadata_type?: string | null
           metadata_value?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          source_updated_at?: string | null
         }
         Relationships: [
           {
@@ -405,6 +435,7 @@ export type Database = {
           court_level: string
           created_at: string
           full_label: string
+          source_id: string | null
           updated_at: string
         }
         Insert: {
@@ -416,6 +447,7 @@ export type Database = {
           court_level: string
           created_at?: string
           full_label: string
+          source_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -427,6 +459,7 @@ export type Database = {
           court_level?: string
           created_at?: string
           full_label?: string
+          source_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -437,6 +470,8 @@ export type Database = {
           case_category_code: string | null
           case_family: string | null
           case_number: string
+          case_number_normalized: string | null
+          case_number_raw: string | null
           case_type: string | null
           case_type_id: number | null
           closed_date: string | null
@@ -456,6 +491,11 @@ export type Database = {
           plaintiff: string | null
           qr_barcode: string | null
           shelf_location: string | null
+          source_case_id: string | null
+          source_record_hash: string | null
+          source_system: string | null
+          source_updated_at: string | null
+          tracking_number: string | null
           status: Database["public"]["Enums"]["case_status"]
           title: string
           updated_at: string
@@ -466,6 +506,8 @@ export type Database = {
           case_category_code?: string | null
           case_family?: string | null
           case_number: string
+          case_number_normalized?: string | null
+          case_number_raw?: string | null
           case_type?: string | null
           case_type_id?: number | null
           closed_date?: string | null
@@ -485,6 +527,11 @@ export type Database = {
           plaintiff?: string | null
           qr_barcode?: string | null
           shelf_location?: string | null
+          source_case_id?: string | null
+          source_record_hash?: string | null
+          source_system?: string | null
+          source_updated_at?: string | null
+          tracking_number?: string | null
           status?: Database["public"]["Enums"]["case_status"]
           title: string
           updated_at?: string
@@ -495,6 +542,8 @@ export type Database = {
           case_category_code?: string | null
           case_family?: string | null
           case_number?: string
+          case_number_normalized?: string | null
+          case_number_raw?: string | null
           case_type?: string | null
           case_type_id?: number | null
           closed_date?: string | null
@@ -514,6 +563,11 @@ export type Database = {
           plaintiff?: string | null
           qr_barcode?: string | null
           shelf_location?: string | null
+          source_case_id?: string | null
+          source_record_hash?: string | null
+          source_system?: string | null
+          source_updated_at?: string | null
+          tracking_number?: string | null
           status?: Database["public"]["Enums"]["case_status"]
           title?: string
           updated_at?: string
@@ -551,6 +605,7 @@ export type Database = {
           court_rank: string
           created_at: string
           station_name: string
+          source_id: string | null
         }
         Insert: {
           active?: boolean
@@ -559,6 +614,7 @@ export type Database = {
           court_rank: string
           created_at?: string
           station_name: string
+          source_id?: string | null
         }
         Update: {
           active?: boolean
@@ -567,6 +623,7 @@ export type Database = {
           court_rank?: string
           created_at?: string
           station_name?: string
+          source_id?: string | null
         }
         Relationships: []
       }
@@ -576,36 +633,60 @@ export type Database = {
           category: Database["public"]["Enums"]["document_category"] | null
           created_at: string
           file_size: number
+          file_volume_id: string | null
+          checksum_sha256: string | null
           id: string
           mime_type: string
           ocr_status: Database["public"]["Enums"]["ocr_status"] | null
+          ocr_confidence: number | null
+          confidentiality_class: string | null
           storage_path: string
           title: string
           uploaded_by: string | null
+          source_document_id: string | null
+          source_system: string | null
+          source_updated_at: string | null
+          updated_at: string
         }
         Insert: {
           case_id: string
           category?: Database["public"]["Enums"]["document_category"] | null
           created_at?: string
           file_size: number
+          file_volume_id?: string | null
+          checksum_sha256?: string | null
           id?: string
           mime_type: string
           ocr_status?: Database["public"]["Enums"]["ocr_status"] | null
+          ocr_confidence?: number | null
+          confidentiality_class?: string | null
           storage_path: string
           title: string
           uploaded_by?: string | null
+          source_document_id?: string | null
+          source_system?: string | null
+          source_updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           case_id?: string
           category?: Database["public"]["Enums"]["document_category"] | null
           created_at?: string
           file_size?: number
+          file_volume_id?: string | null
+          checksum_sha256?: string | null
           id?: string
           mime_type?: string
           ocr_status?: Database["public"]["Enums"]["ocr_status"] | null
+          ocr_confidence?: number | null
+          confidentiality_class?: string | null
           storage_path?: string
           title?: string
           uploaded_by?: string | null
+          source_document_id?: string | null
+          source_system?: string | null
+          source_updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -663,6 +744,506 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      court_divisions: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          id: string
+          name: string
+          source_id: string | null
+          station_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          source_id?: string | null
+          station_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          source_id?: string | null
+          station_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "court_divisions_station_code_fkey"
+            columns: ["station_code"]
+            isOneToOne: false
+            referencedRelation: "court_stations"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      custody_events: {
+        Row: {
+          actor_id: string | null
+          event_type: string
+          file_volume_id: string
+          from_custodian_id: string | null
+          from_location_id: string | null
+          id: string
+          movement_request_id: string | null
+          notes: string | null
+          occurred_at: string
+          scan_method: string | null
+          to_custodian_id: string | null
+          to_location_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          event_type: string
+          file_volume_id: string
+          from_custodian_id?: string | null
+          from_location_id?: string | null
+          id?: string
+          movement_request_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          scan_method?: string | null
+          to_custodian_id?: string | null
+          to_location_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          event_type?: string
+          file_volume_id?: string
+          from_custodian_id?: string | null
+          from_location_id?: string | null
+          id?: string
+          movement_request_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          scan_method?: string | null
+          to_custodian_id?: string | null
+          to_location_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custody_events_file_volume_id_fkey"
+            columns: ["file_volume_id"]
+            isOneToOne: false
+            referencedRelation: "file_volumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          checksum_sha256: string | null
+          created_at: string
+          created_by: string | null
+          document_id: string
+          id: string
+          storage_path: string
+          version_number: number
+        }
+        Insert: {
+          checksum_sha256?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          id?: string
+          storage_path: string
+          version_number?: number
+        }
+        Update: {
+          checksum_sha256?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          id?: string
+          storage_path?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_source_mappings: {
+        Row: {
+          created_at: string
+          entity_type: string
+          id: string
+          local_id: string
+          source_id: string
+          source_system: string
+          source_updated_at: string | null
+          synced_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          id?: string
+          local_id: string
+          source_id: string
+          source_system: string
+          source_updated_at?: string | null
+          synced_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          id?: string
+          local_id?: string
+          source_id?: string
+          source_system?: string
+          source_updated_at?: string | null
+          synced_at?: string
+        }
+        Relationships: []
+      }
+      file_volumes: {
+        Row: {
+          archive_code: string
+          barcode: string | null
+          case_id: string
+          confidentiality_class: string
+          condition: string
+          created_at: string
+          id: string
+          legal_hold: boolean
+          page_count: number | null
+          retention_class: string
+          source_system: string | null
+          source_updated_at: string | null
+          status: string
+          updated_at: string
+          volume_number: number
+        }
+        Insert: {
+          archive_code: string
+          barcode?: string | null
+          case_id: string
+          confidentiality_class?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          legal_hold?: boolean
+          page_count?: number | null
+          retention_class?: string
+          source_system?: string | null
+          source_updated_at?: string | null
+          status?: string
+          updated_at?: string
+          volume_number?: number
+        }
+        Update: {
+          archive_code?: string
+          barcode?: string | null
+          case_id?: string
+          confidentiality_class?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          legal_hold?: boolean
+          page_count?: number | null
+          retention_class?: string
+          source_system?: string | null
+          source_updated_at?: string | null
+          status?: string
+          updated_at?: string
+          volume_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_volumes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movement_requests: {
+        Row: {
+          associated_case_event_id: string | null
+          approved_by: string | null
+          completed_at: string | null
+          created_at: string
+          destination_id: string | null
+          destination_type: string
+          expected_return_at: string | null
+          file_volume_id: string
+          id: string
+          idempotency_key: string | null
+          priority: string
+          reason_code: string | null
+          reason_text: string
+          requested_by: string | null
+          same_court: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          associated_case_event_id?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_id?: string | null
+          destination_type: string
+          expected_return_at?: string | null
+          file_volume_id: string
+          id?: string
+          idempotency_key?: string | null
+          priority?: string
+          reason_code?: string | null
+          reason_text: string
+          requested_by?: string | null
+          same_court?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          associated_case_event_id?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_id?: string | null
+          destination_type?: string
+          expected_return_at?: string | null
+          file_volume_id?: string
+          id?: string
+          idempotency_key?: string | null
+          priority?: string
+          reason_code?: string | null
+          reason_text?: string
+          requested_by?: string | null
+          same_court?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movement_requests_file_volume_id_fkey"
+            columns: ["file_volume_id"]
+            isOneToOne: false
+            referencedRelation: "file_volumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registry_requests: {
+        Row: {
+          approved_by: string | null
+          assigned_officer_id: string | null
+          case_id: string | null
+          completed_at: string | null
+          created_at: string
+          due_at: string | null
+          id: string
+          idempotency_key: string | null
+          priority: string
+          request_type: string
+          requester: string
+          source_event_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          assigned_officer_id?: string | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          priority?: string
+          request_type: string
+          requester: string
+          source_event_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          assigned_officer_id?: string | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          priority?: string
+          request_type?: string
+          requester?: string
+          source_event_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registry_requests_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storage_assignments: {
+        Row: {
+          active: boolean
+          assigned_at: string
+          assigned_by: string | null
+          file_volume_id: string
+          id: string
+          location_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          assigned_at?: string
+          assigned_by?: string | null
+          file_volume_id: string
+          id?: string
+          location_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          assigned_at?: string
+          assigned_by?: string | null
+          file_volume_id?: string
+          id?: string
+          location_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_assignments_file_volume_id_fkey"
+            columns: ["file_volume_id"]
+            isOneToOne: false
+            referencedRelation: "file_volumes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storage_assignments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "archive_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_exceptions: {
+        Row: {
+          created_at: string
+          error_code: string
+          id: string
+          payload_redacted: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_entity: string
+          source_id: string
+          status: string
+          sync_run_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_code: string
+          id?: string
+          payload_redacted?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_entity: string
+          source_id: string
+          status?: string
+          sync_run_id: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string
+          id?: string
+          payload_redacted?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_entity?: string
+          source_id?: string
+          status?: string
+          sync_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_exceptions_sync_run_id_fkey"
+            columns: ["sync_run_id"]
+            isOneToOne: false
+            referencedRelation: "sync_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_runs: {
+        Row: {
+          completed_at: string | null
+          created_count: number
+          cursor_value: string | null
+          id: string
+          notes: string | null
+          read_count: number
+          rejected_count: number
+          reconciled_count: number
+          schema_version: string
+          source_system: string
+          started_at: string
+          status: string
+          updated_at: string
+          updated_count: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_count?: number
+          cursor_value?: string | null
+          id?: string
+          notes?: string | null
+          read_count?: number
+          rejected_count?: number
+          reconciled_count?: number
+          schema_version: string
+          source_system: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          updated_count?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_count?: number
+          cursor_value?: string | null
+          id?: string
+          notes?: string | null
+          read_count?: number
+          rejected_count?: number
+          reconciled_count?: number
+          schema_version?: string
+          source_system?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          updated_count?: number
+        }
+        Relationships: []
       }
       memos: {
         Row: {
@@ -750,41 +1331,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      registry_requests: {
-        Row: {
-          case_id: string | null
-          created_at: string
-          id: string
-          request_type: string
-          requester: string
-          status: string
-        }
-        Insert: {
-          case_id?: string | null
-          created_at?: string
-          id?: string
-          request_type: string
-          requester: string
-          status?: string
-        }
-        Update: {
-          case_id?: string | null
-          created_at?: string
-          id?: string
-          request_type?: string
-          requester?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "registry_requests_case_id_fkey"
-            columns: ["case_id"]
-            isOneToOne: false
-            referencedRelation: "cases"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
@@ -911,6 +1457,8 @@ export type Database = {
           case_category_code: string
           case_family: string
           case_number: string
+          case_number_normalized: string | null
+          case_number_raw: string | null
           case_type: string
           case_type_id: number
           closed_date: string
@@ -931,6 +1479,11 @@ export type Database = {
           plaintiff: string
           qr_barcode: string
           shelf_location: string
+          source_case_id: string | null
+          source_record_hash: string | null
+          source_system: string | null
+          source_updated_at: string | null
+          tracking_number: string | null
           status: Database["public"]["Enums"]["case_status"]
           title: string
           updated_at: string
@@ -948,6 +1501,8 @@ export type Database = {
           case_category_code: string | null
           case_family: string | null
           case_number: string
+          case_number_normalized: string | null
+          case_number_raw: string | null
           case_type: string | null
           case_type_id: number | null
           closed_date: string | null
@@ -967,6 +1522,11 @@ export type Database = {
           plaintiff: string | null
           qr_barcode: string | null
           shelf_location: string | null
+          source_case_id: string | null
+          source_record_hash: string | null
+          source_system: string | null
+          source_updated_at: string | null
+          tracking_number: string | null
           status: Database["public"]["Enums"]["case_status"]
           title: string
           updated_at: string
@@ -1025,7 +1585,15 @@ export type Database = {
         | "Orders"
         | "Correspondence"
         | "Exhibits"
-      location_level: "room" | "bay" | "rack" | "shelf" | "box"
+      location_level:
+        | "station"
+        | "room"
+        | "section"
+        | "bay"
+        | "rack"
+        | "shelf"
+        | "box"
+        | "bundle"
       movement_status: "checked_out" | "in_transit" | "returned" | "overdue"
       ocr_status: "pending" | "processing" | "complete" | "failed"
     }
@@ -1196,7 +1764,7 @@ export const Constants = {
         "Correspondence",
         "Exhibits",
       ],
-      location_level: ["room", "bay", "rack", "shelf", "box"],
+      location_level: ["station", "room", "section", "bay", "rack", "shelf", "box", "bundle"],
       movement_status: ["checked_out", "in_transit", "returned", "overdue"],
       ocr_status: ["pending", "processing", "complete", "failed"],
     },

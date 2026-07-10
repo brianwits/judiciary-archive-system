@@ -9,12 +9,15 @@ export const scanLookupSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1, "Scan or enter a case, QR, or archive code.")
+    .min(1, "Scan or enter a case, tracking, QR, or archive code.")
     .max(SCAN_CODE_MAX_LENGTH, "Scan code is too long."),
 });
 
 export const SCAN_MATCH_TYPES = [
   "case_number",
+  "case_number_raw",
+  "case_number_normalized",
+  "tracking_number",
   "case_number_alias",
   "qr_barcode",
   "archive_code",

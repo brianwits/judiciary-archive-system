@@ -67,6 +67,8 @@ export function archiveLocationRowToDto(row: ArchiveLocationRow): ArchiveLocatio
     capacity: row.capacity,
     occupiedCount: row.occupied_count,
     category: row.category ?? undefined,
+    stationId: row.station_id,
+    active: row.active,
   };
 }
 

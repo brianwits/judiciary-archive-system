@@ -12,7 +12,6 @@ export const CASE_TYPES = [
   "Civil",
   "Criminal",
   "ELC",
-  "Family",
   "Commercial",
   "Constitutional",
   "Probate",
@@ -29,7 +28,6 @@ export const COURT_DIVISIONS = [
   "High Court",
   "Magistrate Court",
   "Environment & Land",
-  "Family Division",
   "Commercial Division",
 ] as const;
 
@@ -38,6 +36,12 @@ export type CourtDivision = (typeof COURT_DIVISIONS)[number];
 export type CaseFile = {
   id: string;
   caseNumber: string;
+  caseNumberRaw?: string | null;
+  caseNumberNormalized?: string | null;
+  trackingNumber?: string | null;
+  sourceCaseId?: string | null;
+  sourceSystem?: string | null;
+  sourceUpdatedAt?: string | null;
   caseType: CaseType;
   caseTypeId: number | null;
   caseTypeCode: string;
@@ -74,7 +78,6 @@ export type CaseFilters = {
   caseType?: CaseType;
   caseCategory?: string;
   caseTypeId?: number;
-  caseFamily?: string;
   classificationStatus?: "canonical" | "legacy" | "pending_review";
   year?: number;
   status?: CaseStatus;

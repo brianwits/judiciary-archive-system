@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { CASE_STATUSES } from "@/types/case";
-import { CASE_FAMILIES, CASE_TYPE_DEFINITIONS } from "@/data/case-types";
+import { CASE_TYPE_DEFINITIONS } from "@/data/case-types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,7 +20,6 @@ export function CaseFilters() {
   const searchParams = useSearchParams();
 
   const caseTypeId = searchParams.get("caseTypeId") ?? "";
-  const caseFamily = searchParams.get("caseFamily") ?? "";
   const classification = searchParams.get("classification") ?? "";
   const year = searchParams.get("year") ?? "";
   const status = searchParams.get("status") ?? "";
@@ -39,23 +38,6 @@ export function CaseFilters() {
   return (
     <div className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-end">
       <div className="space-y-2">
-        <Label>Case family</Label>
-        <Select value={caseFamily} onValueChange={(v) => updateParam("caseFamily", v ?? "")}>
-          <SelectTrigger className="w-full xl:w-[220px]">
-            <SelectValue placeholder="All families" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All types</SelectItem>
-            {CASE_FAMILIES.map((family) => (
-              <SelectItem key={family} value={family}>
-                {family}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
         <Label>Case type</Label>
         <Select value={caseTypeId} onValueChange={(v) => updateParam("caseTypeId", v ?? "")}>
           <SelectTrigger className="w-full xl:w-[340px]">
@@ -65,7 +47,7 @@ export function CaseFilters() {
             <SelectItem value="">All case types</SelectItem>
             {CASE_TYPE_DEFINITIONS.map((definition) => (
               <SelectItem key={definition.caseTypeId} value={String(definition.caseTypeId)}>
-                {definition.fullLabel}
+                {definition.caseType}
               </SelectItem>
             ))}
           </SelectContent>

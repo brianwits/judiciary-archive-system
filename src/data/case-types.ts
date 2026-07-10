@@ -2,7 +2,6 @@ export const CASE_FAMILIES = [
   "Civil",
   "Criminal",
   "Commercial",
-  "Family",
   "Children & Protection",
   "Succession & Probate",
   "Traffic",
@@ -17,7 +16,7 @@ export const CASE_FAMILIES = [
 ] as const;
 
 export type CaseFamily = (typeof CASE_FAMILIES)[number];
-export type CourtLevel = "Magistrate Court" | "High Court";
+export type CourtLevel = "Magistrate Court" | "High Court" | "Environment and Land Court";
 
 export type CaseTypeDefinition = {
   caseTypeId: number;
@@ -50,7 +49,7 @@ export const CASE_TYPE_DEFINITIONS: readonly CaseTypeDefinition[] = [
   define({ caseTypeId: 40, code: "MCCHCC", caseType: "Magistrate Court Civil Cases - Children", courtLevel: "Magistrate Court", caseFamily: "Children & Protection" }),
   define({ caseTypeId: 42, code: "MCAC", caseType: "Magistrate Court Anti-Corruption", courtLevel: "Magistrate Court", caseFamily: "Anti-Corruption & Economic Crimes" }),
   define({ caseTypeId: 61, code: "MCCOMMSU", caseType: "Magistrate Court Commercial Suits", courtLevel: "Magistrate Court", caseFamily: "Commercial" }),
-  define({ caseTypeId: 62, code: "MCDC", caseType: "Magistrate Court Divorce Case", courtLevel: "Magistrate Court", caseFamily: "Family" }),
+
   define({ caseTypeId: 64, code: "MCRTC", caseType: "Magistrate Court Rent Tribunal Cause", courtLevel: "Magistrate Court", caseFamily: "Tribunal & Regulatory" }),
   define({ caseTypeId: 70, code: "MCACMISC", caseType: "Magistrate Court Anti-Corruption Miscellaneous", courtLevel: "Magistrate Court", caseFamily: "Anti-Corruption & Economic Crimes" }),
   define({ caseTypeId: 71, code: "MCINQ", caseType: "Inquest", courtLevel: "Magistrate Court", caseFamily: "Criminal" }),
@@ -88,11 +87,7 @@ export const CASE_TYPE_DEFINITIONS: readonly CaseTypeDefinition[] = [
   define({ caseTypeId: 19, code: "HCCC", caseType: "High Court Civil Case", courtLevel: "High Court", caseFamily: "Civil" }),
   define({ caseTypeId: 20, code: "HCCCMISC", caseType: "High Court Civil Case Miscellaneous", courtLevel: "High Court", caseFamily: "Civil" }),
   define({ caseTypeId: 21, code: "HCCA", caseType: "High Court Civil Appeal", courtLevel: "High Court", caseFamily: "Civil" }),
-  define({ caseTypeId: 22, code: "HCFA", caseType: "High Court Family Appeal", courtLevel: "High Court", caseFamily: "Family" }),
-  define({ caseTypeId: 23, code: "HCFMISC", caseType: "High Court Family Miscellaneous", courtLevel: "High Court", caseFamily: "Family" }),
-  define({ caseTypeId: 24, code: "HCFP&A", caseType: "High Court Family Probate and Administration", courtLevel: "High Court", caseFamily: "Succession & Probate" }),
-  define({ caseTypeId: 25, code: "HCFDC", caseType: "High Court Family Divorce Cause", courtLevel: "High Court", caseFamily: "Family" }),
-  define({ caseTypeId: 26, code: "HCFADOP", caseType: "High Court Family Adoption", courtLevel: "High Court", caseFamily: "Family" }),
+  define({ caseTypeId: 24, code: "HCFP&A", caseType: "High Court Probate and Administration", courtLevel: "High Court", caseFamily: "Succession & Probate" }),
   define({ caseTypeId: 29, code: "HCJR", caseType: "High Court Judicial Review", courtLevel: "High Court", caseFamily: "Judicial Review" }),
   define({ caseTypeId: 30, code: "HCJRMISC", caseType: "High Court Judicial Review Miscellaneous", courtLevel: "High Court", caseFamily: "Judicial Review" }),
   define({ caseTypeId: 43, code: "HCACECMISC", caseType: "High Court Anti-corruption and Economic Crimes Miscellaneous", courtLevel: "High Court", caseFamily: "Anti-Corruption & Economic Crimes" }),
@@ -102,7 +97,7 @@ export const CASE_TYPE_DEFINITIONS: readonly CaseTypeDefinition[] = [
   define({ caseTypeId: 80, code: "HCCHREPA", caseType: "High Court Constitution and Human Rights Election Petition Appeal", courtLevel: "High Court", caseFamily: "Election" }),
   define({ caseTypeId: 81, code: "HCCHRMEPA", caseType: "High Court Constitution and Human Rights Miscellaneous Election Petition Appeal(MEPA)", courtLevel: "High Court", caseFamily: "Election" }),
   define({ caseTypeId: 89, code: "HCCHREP", caseType: "High Court Constitution and Human Rights Election Petition", courtLevel: "High Court", caseFamily: "Election" }),
-  define({ caseTypeId: 108, code: "HCFOS", caseType: "High Court Family Originating Summons", courtLevel: "High Court", caseFamily: "Family" }),
+
   define({ caseTypeId: 226, code: "HCACECJR", caseType: "High Court Anticorruption and Economic Crimes Judicial Review", courtLevel: "High Court", caseFamily: "Anti-Corruption & Economic Crimes" }),
   define({ caseTypeId: 247, code: "HCCOMMARB", caseType: "High Court Commercial Arbitration", courtLevel: "High Court", caseFamily: "Commercial" }),
   define({ caseTypeId: 258, code: "HCCHRPET", caseType: "High Court Constitution and Human Rights Petitions (Criminal)", courtLevel: "High Court", caseFamily: "Constitutional & Human Rights" }),
@@ -110,6 +105,12 @@ export const CASE_TYPE_DEFINITIONS: readonly CaseTypeDefinition[] = [
   define({ caseTypeId: 299, code: "HCGJCRA", caseType: "High Court Gender Justice Criminal Appeal", courtLevel: "High Court", caseFamily: "Gender Justice" }),
   define({ caseTypeId: 300, code: "HCGJCA", caseType: "High Court Gender Justice Civil Appeal", courtLevel: "High Court", caseFamily: "Gender Justice" }),
   define({ caseTypeId: 343, code: "HCCSCA", caseType: "High Court Civil Small Claims Appeal", courtLevel: "High Court", caseFamily: "Civil" }),
+
+  // ── Environment and Land Court case types ────────────────────────────────
+  define({ caseTypeId: 401, code: "ELC", caseType: "Environment and Land Court Case", courtLevel: "Environment and Land Court", caseFamily: "Environment & Land" }),
+  define({ caseTypeId: 402, code: "ELCOS", caseType: "Environment and Land Court Originating Summons", courtLevel: "Environment and Land Court", caseFamily: "Environment & Land" }),
+  define({ caseTypeId: 403, code: "ELCEP", caseType: "Environment and Land Court Environmental Petition", courtLevel: "Environment and Land Court", caseFamily: "Environment & Land" }),
+  define({ caseTypeId: 405, code: "ELCMISC", caseType: "Environment and Land Court Miscellaneous", courtLevel: "Environment and Land Court", caseFamily: "Environment & Land" }),
 ];
 
 export const CASE_TYPE_BY_ID = new Map(

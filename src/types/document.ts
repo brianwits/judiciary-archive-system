@@ -24,4 +24,11 @@ export type CaseDocument = {
   uploadedBy: string | null;
   uploadedByName: string | null;
   createdAt: string;
+  fileVolumeId?: string | null;
+  checksumSha256?: string | null;
+  ocrConfidence?: number | null;
+  confidentialityClass?: string | null;
+  sourceDocumentId?: string | null;
+  sourceSystem?: string | null;
+  sourceUpdatedAt?: string | null;
 };

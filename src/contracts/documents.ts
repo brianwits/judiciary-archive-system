@@ -33,5 +33,12 @@ export function documentRowToDto(
     uploadedBy: row.uploaded_by,
     uploadedByName: uploadedByName ?? null,
     createdAt: row.created_at,
+    fileVolumeId: row.file_volume_id,
+    checksumSha256: row.checksum_sha256,
+    ocrConfidence: row.ocr_confidence,
+    confidentialityClass: row.confidentiality_class,
+    sourceDocumentId: row.source_document_id,
+    sourceSystem: row.source_system,
+    sourceUpdatedAt: row.source_updated_at,
   };
 }

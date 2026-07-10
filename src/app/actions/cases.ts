@@ -85,6 +85,7 @@ export async function createCase(formData: FormData) {
       .from("cases")
       .insert({
         case_number: input.caseNumber,
+        case_number_raw: input.caseNumberRaw,
         title: input.title,
         court: input.court,
         status: input.status,
@@ -93,7 +94,6 @@ export async function createCase(formData: FormData) {
         description: input.description,
         case_type: input.caseType,
         case_type_id: input.caseTypeId,
-        case_family: input.caseFamily,
         case_category_code: null,
         court_station: mockFields.courtStation,
         court_division: mockFields.courtDivision,
@@ -160,6 +160,7 @@ export async function updateCase(id: string, formData: FormData) {
       .from("cases")
       .update({
         case_number: input.caseNumber,
+        case_number_raw: input.caseNumberRaw,
         title: input.title,
         court: input.court,
         status: input.status,
@@ -168,7 +169,6 @@ export async function updateCase(id: string, formData: FormData) {
         description: input.description,
         case_type: input.caseType,
         case_type_id: input.caseTypeId,
-        case_family: input.caseFamily,
         case_category_code: null,
         court_station: mockFields.courtStation,
         court_division: mockFields.courtDivision,
@@ -414,7 +414,7 @@ function buildMockCase(input: ReturnType<typeof caseFormDataToInput>, userId: st
     caseTypeCode: input.caseTypeCode,
     caseTypeName: input.caseTypeName,
     caseTypeFullLabel: input.caseTypeFullLabel,
-    caseFamily: input.caseFamily,
+    caseFamily: input.caseType,
     caseCourtLevel: input.courtLevel,
     classificationStatus: "canonical" as const,
     caseCategoryCode,

@@ -64,6 +64,11 @@
   --background: #f7f6f0;
   --dashboard-background: #fffbf5;
   --foreground: #171a17;
+  --font-dm-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-instrument-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-space-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   --card: #ffffff;
   --card-foreground: #171a17;
   --popover: #ffffff;

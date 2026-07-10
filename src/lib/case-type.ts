@@ -20,7 +20,7 @@ export function legacyCaseTypeForFamily(family: string): CaseType {
   if (family === "Succession & Probate") return "Succession";
   if (family === "Constitutional & Human Rights") return "Constitutional";
   if (family === "Commercial") return "Commercial";
-  if (family === "Family" || family === "Children & Protection" || family === "Gender Justice") return "Family";
+  if (family === "Children & Protection" || family === "Gender Justice") return "Civil";
   if (family === "Traffic") return "Traffic";
   return family === "Criminal" || family === "Anti-Corruption & Economic Crimes" || family === "Election"
     ? "Criminal"
@@ -43,7 +43,7 @@ export function inferCaseType(caseNumber: string): CaseType {
   if (prefix === "MCT" || prefix === "MCTR") return "Traffic";
   if (prefix === "MCSUCC" || prefix === "MCS") return "Succession";
   if (prefix === "ELC") return "ELC";
-  if (prefix === "FAM") return "Family";
+
   if (prefix === "COM") return "Commercial";
   if (prefix === "CON") return "Constitutional";
   if (prefix === "PRO") return "Probate";

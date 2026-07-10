@@ -4,7 +4,7 @@ import {
   getCaseCategoryLabel,
   getCaseTypeFromCategoryCode,
 } from "@/lib/case-category";
-import type { CaseFile } from "@/types/case";
+import type { CaseFile, CaseType, CourtDivision } from "@/types/case";
 import { getCaseTypeDefinition } from "@/data/case-types";
 
 type SeedCaseInput = Omit<
@@ -68,6 +68,146 @@ const cases: SeedCaseInput[] = [
     createdBy: "user-registry",
   },
   {
+    caseNumber: "ELC/OS/045/2025",
+    caseType: "ELC",
+    courtStation: "NRB",
+    courtDivision: "Environment & Land",
+    year: 2025,
+    plaintiff: "Sunrise Properties Ltd",
+    defendant: "City Planning Authority",
+    judge: "Hon. Justice Odongo",
+    status: "open",
+    archiveCode: buildArchiveCode({ court: "NRB", caseType: "ELC", year: 2025, caseNo: "OS045" }),
+    shelfLocation: "R7-B1-R2-S1",
+    locationId: "loc-r7-b1-r2-s1",
+    qrBarcode: "QR-ELCOS0452025",
+    filedDate: "2025-04-12",
+    closedDate: null,
+    notes: "Originating summons - land use dispute",
+    isMissing: false,
+    createdBy: "user-registry",
+  },
+  {
+    caseNumber: "ELC/122/2024",
+    caseType: "ELC",
+    courtStation: "KSM",
+    courtDivision: "Environment & Land",
+    year: 2024,
+    plaintiff: "Lake Basin Farmers Co-op",
+    defendant: "National Land Commission",
+    judge: "Hon. Justice Achieng",
+    status: "closed",
+    archiveCode: buildArchiveCode({ court: "KSM", caseType: "ELC", year: 2024, caseNo: "122" }),
+    shelfLocation: "R8-B2-R1-S4",
+    locationId: "loc-r8-b2-r1-s4",
+    qrBarcode: "QR-ELC1222024",
+    filedDate: "2024-07-08",
+    closedDate: "2026-03-15",
+    notes: "Land compensation dispute - consent judgment",
+    isMissing: false,
+    createdBy: "user-registry",
+  },
+  {
+    caseNumber: "ELC/EP/003/2025",
+    caseType: "ELC",
+    courtStation: "MSA",
+    courtDivision: "Environment & Land",
+    year: 2025,
+    plaintiff: "Coastal Conservation Trust",
+    defendant: "County Government of Mombasa",
+    judge: "Hon. Justice Omar",
+    status: "open",
+    archiveCode: buildArchiveCode({ court: "MSA", caseType: "ELC", year: 2025, caseNo: "EP003" }),
+    shelfLocation: "R2-B3-R2-S1",
+    locationId: "loc-r2-b3-r2-s1",
+    qrBarcode: "QR-ELCEP0032025",
+    filedDate: "2025-05-22",
+    closedDate: null,
+    notes: "Environmental petition - mangrove conservation",
+    isMissing: false,
+    createdBy: "user-registry",
+  },
+  {
+    caseNumber: "ELC/098/2024",
+    caseType: "ELC",
+    courtStation: "NKR",
+    courtDivision: "Environment & Land",
+    year: 2024,
+    plaintiff: "Rift Valley Estates",
+    defendant: "Water Resources Authority",
+    judge: "Hon. Justice Kiprono",
+    status: "pending_return",
+    archiveCode: buildArchiveCode({ court: "NKR", caseType: "ELC", year: 2024, caseNo: "098" }),
+    shelfLocation: "R4-B2-R3-S2",
+    locationId: "loc-r4-b2-r3-s2",
+    qrBarcode: "QR-ELC0982024",
+    filedDate: "2024-10-30",
+    closedDate: null,
+    notes: "Water rights and riparian boundary dispute",
+    isMissing: false,
+    createdBy: "user-registry",
+  },
+  {
+    caseNumber: "MCELC/007/2025",
+    caseType: "ELC",
+    courtStation: "KBT",
+    courtDivision: "Magistrate Court",
+    year: 2025,
+    plaintiff: "Joseph Mwangi",
+    defendant: "Grace Njoki",
+    judge: "Hon. Magistrate Otieno",
+    status: "open",
+    archiveCode: buildArchiveCode({ court: "KBT", caseType: "ELC", year: 2025, caseNo: "MCELC007" }),
+    shelfLocation: "R5-B1-R3-S1",
+    locationId: "loc-r5-b1-r3-s1",
+    qrBarcode: "QR-MCELC0072025",
+    filedDate: "2025-02-18",
+    closedDate: null,
+    notes: "Boundary dispute - referred from Land Registrar",
+    isMissing: false,
+    createdBy: "user-registry",
+  },
+  {
+    caseNumber: "MCELC/032/2023",
+    caseType: "ELC",
+    courtStation: "MSA",
+    courtDivision: "Magistrate Court",
+    year: 2023,
+    plaintiff: "Ali Hassan",
+    defendant: "Mombasa Municipal Council",
+    judge: "Hon. Magistrate Nyambura",
+    status: "closed",
+    archiveCode: buildArchiveCode({ court: "MSA", caseType: "ELC", year: 2023, caseNo: "MCELC032" }),
+    shelfLocation: "R3-B2-R1-S5",
+    locationId: "loc-r3-b2-r1-s5",
+    qrBarcode: "QR-MCELC0322023",
+    filedDate: "2023-06-14",
+    closedDate: "2025-01-30",
+    notes: "Tenant-landlord dispute over market stall",
+    isMissing: false,
+    createdBy: "user-registry",
+  },
+  {
+    caseNumber: "MCELC/MISC/001/2025",
+    caseType: "ELC",
+    courtStation: "NRB",
+    courtDivision: "Magistrate Court",
+    year: 2025,
+    plaintiff: "Urban Residents Association",
+    defendant: "Nairobi Water Company",
+    judge: "Hon. Magistrate Wanjala",
+    status: "open",
+    archiveCode: buildArchiveCode({ court: "NRB", caseType: "ELC", year: 2025, caseNo: "MCELCMISC001" }),
+    shelfLocation: "R6-B3-R2-S2",
+    locationId: "loc-r6-b3-r2-s2",
+    qrBarcode: "QR-MCELCMISC0012025",
+    filedDate: "2025-03-05",
+    closedDate: null,
+    notes: "Miscellaneous application - water connection dispute",
+    isMissing: false,
+    createdBy: "user-registry",
+  },
+  {
     caseNumber: "HCCC/456/2024",
     legacyCaseNumbers: ["CIV/456/2024"],
     caseType: "Civil",
@@ -85,26 +225,6 @@ const cases: SeedCaseInput[] = [
     filedDate: "2024-06-01",
     closedDate: "2025-12-15",
     notes: "Contract dispute",
-    isMissing: false,
-    createdBy: "user-registry",
-  },
-  {
-    caseNumber: "FAM/089/2025",
-    caseType: "Family",
-    courtStation: "KBT",
-    courtDivision: "Family Division",
-    year: 2025,
-    plaintiff: "Jane Wanjiru",
-    defendant: "James Wanjiru",
-    judge: "Hon. Justice Akinyi",
-    status: "open",
-    archiveCode: buildArchiveCode({ court: "KBT", caseType: "Family", year: 2025, caseNo: "089" }),
-    shelfLocation: "R3-B2-R1-S1",
-    locationId: "loc-r3-b2-r1-s1",
-    qrBarcode: "QR-FAM0892025",
-    filedDate: "2025-02-10",
-    closedDate: null,
-    notes: "Custody and maintenance petition",
     isMissing: false,
     createdBy: "user-registry",
   },
@@ -193,46 +313,75 @@ const cases: SeedCaseInput[] = [
 
 function generateMoreCases(): SeedCaseInput[] {
   const extra: SeedCaseInput[] = [];
-  const types = ["Civil", "Criminal", "ELC", "Family", "Commercial"] as const;
-  const canonicalPrefixes = {
-    Civil: "HCCC",
-    Criminal: "HCCR",
-    ELC: "ELC",
-    Family: "FAM",
-    Commercial: "COM",
-  } as const;
-  const stations = ["KBT", "NRB", "MSA", "KSM"] as const;
-  const statuses = ["open", "closed", "archived"] as const;
 
-  for (let i = 1; i <= 22; i++) {
-    const type = types[i % types.length];
-    const station = stations[i % stations.length];
-    const year = 2020 + (i % 6);
-    const caseNo = String(100 + i);
-    const caseNumber = `${canonicalPrefixes[type]}/${caseNo}/${year}`;
-    const legacyCaseNumbers = [`${type.slice(0, 3).toUpperCase()}/${caseNo}/${year}`];
-    if (type === "Criminal") legacyCaseNumbers.push(`HCR/${caseNo}/${year}`);
-    extra.push({
-      caseNumber,
-      legacyCaseNumbers: legacyCaseNumbers.filter((legacy) => legacy !== caseNumber),
-      caseType: type,
-      courtStation: station,
-      courtDivision: "High Court",
-      year,
-      plaintiff: `Plaintiff ${i}`,
-      defendant: `Defendant ${i}`,
-      judge: `Hon. Justice ${["Kamau", "Njeri", "Ochieng", "Akinyi"][i % 4]}`,
-      status: statuses[i % statuses.length],
-      archiveCode: buildArchiveCode({ court: station, caseType: type, year, caseNo }),
-      shelfLocation: `R${(i % 6) + 1}-B${(i % 3) + 1}-R${(i % 4) + 1}-S${(i % 5) + 1}`,
-      locationId: `loc-r${(i % 6) + 1}`,
-      qrBarcode: `QR-${caseNo}${year}`,
-      filedDate: `${year}-${String((i % 12) + 1).padStart(2, "0")}-15`,
-      closedDate: statuses[i % statuses.length] !== "open" ? `${year + 1}-06-30` : null,
-      notes: null,
-      isMissing: false,
-      createdBy: "user-registry",
-    });
+  // Define case profiles that exercise all three court levels
+  const profiles: Array<{
+    prefix: string;
+    type: CaseType;
+    division: CourtDivision;
+  }> = [
+    // High Court cases (existing pattern)
+    { prefix: "HCCC", type: "Civil", division: "High Court" },
+    { prefix: "HCCR", type: "Criminal", division: "High Court" },
+    { prefix: "COM", type: "Commercial", division: "Commercial Division" },
+    { prefix: "CON", type: "Constitutional", division: "High Court" },
+    { prefix: "PRO", type: "Probate", division: "High Court" },
+    // Environment & Land Court cases (court_division = Environment & Land)
+    { prefix: "ELC", type: "ELC", division: "Environment & Land" },
+    // Magistrate Court cases
+    { prefix: "MCCR", type: "Criminal", division: "Magistrate Court" },
+    { prefix: "MCCC", type: "Civil", division: "Magistrate Court" },
+    { prefix: "MCTR", type: "Traffic", division: "Magistrate Court" },
+    { prefix: "MCSUCC", type: "Succession", division: "Magistrate Court" },
+    // Magistrate ELC cases
+    { prefix: "MCELC", type: "ELC", division: "Magistrate Court" },
+  ];
+
+  const stations = ["KBT", "NRB", "MSA", "KSM", "NKR"] as const;
+  const statuses = ["open", "closed", "archived", "pending_return"] as const;
+  const judges = ["Kamau", "Njeri", "Ochieng", "Akinyi", "Mwangi", "Hassan"] as const;
+
+  let caseIdx = 0;
+  for (let cycle = 0; cycle < 3; cycle++) {
+  for (const profile of profiles) {
+      caseIdx++;
+      const station = stations[caseIdx % stations.length];
+      const year = 2021 + (caseIdx % 5);
+      const caseNo = String(200 + caseIdx);
+      const caseNumber = `${profile.prefix}/${caseNo}/${year}`;
+      const status = statuses[caseIdx % statuses.length];
+
+      const legacyNumbers: string[] = [];
+      if (profile.prefix === "HCCR" || profile.prefix === "MCCR") {
+        legacyNumbers.push(`CR/${caseNo}/${year}`);
+      } else if (profile.prefix === "COM") {
+        legacyNumbers.push(`CIV/${caseNo}/${year}`);
+      }
+
+      const judgeTitle = profile.division === "Magistrate Court" ? "Hon. Magistrate" : "Hon. Justice";
+
+      extra.push({
+        caseNumber,
+        legacyCaseNumbers: legacyNumbers,
+        caseType: profile.type,
+        courtStation: station,
+        courtDivision: profile.division,
+        year,
+        plaintiff: `Plaintiff ${caseIdx}`,
+        defendant: `Defendant ${caseIdx}`,
+        judge: `${judgeTitle} ${judges[caseIdx % judges.length]}`,
+        status,
+        archiveCode: buildArchiveCode({ court: station, caseType: profile.type, year, caseNo }),
+        shelfLocation: `R${(caseIdx % 6) + 1}-B${(caseIdx % 3) + 1}-R${(caseIdx % 4) + 1}-S${(caseIdx % 5) + 1}`,
+        locationId: `loc-r${(caseIdx % 6) + 1}`,
+        qrBarcode: `QR-${profile.prefix}${caseNo}${year}`,
+        filedDate: `${year}-${String((caseIdx % 12) + 1).padStart(2, "0")}-15`,
+        closedDate: status === "open" || status === "pending_return" ? null : `${year + 1}-06-30`,
+        notes: null,
+        isMissing: false,
+        createdBy: "user-registry",
+      });
+    }
   }
   return extra;
 }
@@ -250,7 +399,7 @@ export const SEED_CASES: CaseFile[] = seedCaseInputs.map((seedCase, idx) => {
       caseType: c.caseType,
       courtDivision: c.courtDivision,
     });
-    const authoritativeId: Record<string, number> = {
+    const authoritativeId: Record<string, number | null> = {
       HC_CRIMINAL: 9,
       HC_COMMERCIAL: 13,
       HC_CIVIL: 19,
@@ -259,6 +408,11 @@ export const SEED_CASES: CaseFile[] = seedCaseInputs.map((seedCase, idx) => {
       MC_TRAFFIC: 35,
       MC_SUCCESSION: 37,
       MC_SEXUAL_OFFENCE: 72,
+      // ELC - Environment & Land Court case types
+      ELC_MATTER: 401,
+      // Magistrate Court ELC types
+      MC_ELC: 95,
+      MC_ELCMISC: 113,
     };
     const definition = getCaseTypeDefinition(authoritativeId[caseCategoryCode]);
 

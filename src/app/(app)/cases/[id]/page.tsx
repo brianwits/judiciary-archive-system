@@ -82,9 +82,6 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                   <span className="font-medium">Case type:</span> {caseFile.caseTypeFullLabel}
                 </p>
                 <p>
-                  <span className="font-medium">Case family:</span> {caseFile.caseFamily}
-                </p>
-                <p>
                   <span className="font-medium">Classification:</span>{" "}
                   {caseFile.classificationStatus.replace("_", " ")}
                 </p>
