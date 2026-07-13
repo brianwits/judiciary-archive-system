@@ -99,8 +99,7 @@ ON CONFLICT (case_number) DO NOTHING;
 INSERT INTO public.case_number_aliases (case_id, case_number, source)
 SELECT c.id, alias.case_number, 'seed'
 FROM (VALUES
-  ('MCCR/E319/2023', 'MCCR/E319/2023'),
-  ('HCCRC/94/2017', 'HCCRC/94/2017'),
+  ('MCCR/E319/2023', 'CR/E319/2023'),
   ('HCCRC/94/2017', 'HC.CR.C/94/2017')
 ) AS alias(current_case_number, case_number)
 JOIN public.cases c ON c.case_number = alias.current_case_number
