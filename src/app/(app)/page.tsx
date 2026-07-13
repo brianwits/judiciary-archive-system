@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Info } from "lucide-react";
 import Link from "next/link";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { PageHeader } from "@/components/layout/page-header";
@@ -166,6 +166,19 @@ export default async function DashboardPage() {
           </>
         }
       />
+
+      {/* Data scope banner — informs users about the current dataset coverage */}
+      <div className="rounded-xl border border-primary/15 bg-primary/[0.04] px-4 py-3 shadow-[var(--shadow-premium)] ring-1 ring-primary/10 sm:flex sm:items-start sm:gap-3">
+        <div className="mb-2.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] sm:mb-0">
+          <Info className="size-4 text-primary" aria-hidden="true" />
+        </div>
+        <div className="min-w-0 text-sm leading-relaxed text-muted-foreground">
+          <span className="font-semibold text-foreground">Data scope: </span>
+          This dashboard displays case records from{" "}
+          <strong className="font-semibold text-foreground">Kabarnet Magistrate Court</strong> and{" "}
+          <strong className="font-semibold text-foreground">Kabarnet High Court</strong>.
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {dashboard.kpis.map((metric, index) => (
