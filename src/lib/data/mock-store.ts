@@ -5,11 +5,11 @@ import {
   getLocationById,
   getRoomSummaries,
 } from "@/data/seed/archive-locations";
-import { SEED_CASES, SEED_CASE_NUMBER_ALIASES } from "@/data/seed/cases";
 import { SEED_DASHBOARD, SEED_REGISTRY_REQUESTS } from "@/data/seed/dashboard";
 import { SEED_DOCUMENTS } from "@/data/seed/documents";
 import { SEED_MOVEMENTS } from "@/data/seed/movements";
 import { MOCK_USERS } from "@/data/seed/users";
+import { loadCasesFromCsv } from "@/lib/data/csv-loader";
 import { getCaseCategoryLabel } from "@/lib/case-category";
 import { normalizeCaseNumberLookup } from "@/lib/case-number";
 import { filterCases } from "@/lib/data/case-filtering";
@@ -24,8 +24,12 @@ import type { NotificationPreferences } from "@/types/notification";
 import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/types/notification";
 import { normalizeCourtEmail } from "@/lib/email";
 
-let cases = [...SEED_CASES];
-let caseNumberAliases = [...SEED_CASE_NUMBER_ALIASES];
+// ─── Load cases from CSV ────────────────────────────────────────────────────
+const csvData = loadCasesFromCsv();
+const CSV_CASES = csvData.cases;
+
+let cases = [...CSV_CASES];
+let caseNumberAliases: { caseId: string; caseNumber: string }[] = [];
 let movements = [...SEED_MOVEMENTS];
 let documents = [...SEED_DOCUMENTS];
 let auditLogs = [...SEED_AUDIT_LOGS];
@@ -48,12 +52,30 @@ export const mockStore = {
   getUserByEmail: (email: string) =>
     users.find((u) => normalizeCourtEmail(u.email) === normalizeCourtEmail(email)),
 
-  getDashboard: (): DashboardData => ({
-    ...SEED_DASHBOARD,
-    activeCasesCount: cases.filter((c) => c.status === "open").length,
-    registryRequestsCount: registryRequests.filter((r) => r.status === "pending").length,
-    alerts: SEED_DASHBOARD.alerts,
-  }),
+  getDashboard: (): DashboardData => {
+    const activeCases = cases.filter((c) => c.status === "open").length;
+    const archivedCases = cases.filter((c) => c.status === "archived").length;
+    const closedCases = cases.filter((c) => c.status === "closed").length;
+    const missingCases = cases.filter((c) => c.isMissing || c.status === "missing").length;
+    const pendingReturns = cases.filter((c) => c.status === "pending_return").length;
+    const totalCases = cases.length;
+
+    return {
+      ...SEED_DASHBOARD,
+      activeCasesCount: activeCases,
+      registryRequestsCount: registryRequests.filter((r) => r.status === "pending").length,
+      kpis: [
+        { label: "Total Cases", value: totalCases.toLocaleString(), trend: "↑ CTS Kabarnet import", trendDirection: "up", variant: "default" },
+        { label: "Active Files", value: activeCases.toLocaleString(), variant: "default" },
+        { label: "Closed Cases", value: closedCases.toLocaleString(), progress: totalCases > 0 ? Math.round((closedCases / totalCases) * 100) : 0, variant: "success" },
+        { label: "Missing Files", value: String(missingCases), trend: `${missingCases} reported`, trendDirection: missingCases > 0 ? "down" : "up", variant: missingCases > 0 ? "danger" : "success" },
+        { label: "Pending Returns", value: String(pendingReturns), variant: "warning" },
+        { label: "Registry Requests", value: String(registryRequests.length), progress: 64, variant: "default" },
+        { label: "Audit Flags", value: "0", variant: "default" },
+        { label: "Active Users", value: String(users.length), variant: "default" },
+      ],
+    };
+  },
   getRegistryRequests: (): RegistryRequest[] => [...registryRequests],
   updateRegistryRequest: (id: string, data: Partial<RegistryRequest>): RegistryRequest | null => {
     const idx = registryRequests.findIndex((item) => item.id === id);
@@ -180,7 +202,7 @@ export const mockStore = {
         archiveCode: c.archiveCode,
         shelfLocation: c.shelfLocation,
         filedDate: c.filedDate,
-        storagePath: buildMockArchiveDisplayPath(c.locationId!),
+        storagePath: c.locationId ? buildMockArchiveDisplayPath(c.locationId) : "",
       }))
       .sort((a, b) => a.caseNumber.localeCompare(b.caseNumber));
   },
