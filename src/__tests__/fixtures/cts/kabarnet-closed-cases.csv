@@ -1,0 +1,7 @@
+case_number,case_type_code,case_category,case_title_parties,filing_date,date_closed,final_status_outcome,judicial_officer,registry_court,is_appeal,age_and_filing_date_raw,number_of_activities,last_date,source_year_filter
+MCCR/811/2009,MCCR,MCCR - Magistrate Court Criminal Case,Republic VS Daniel Kiptoo,2009-05-12,2011-08-19,closed,Hon. J. K. Ngetich,Kabarnet Magistrate Court,- Original,15 years,12,2024-03-14,2009
+MCCC/E071/2024,MCCC,MCCC - Magistrate Court Civil Case,Jane Chebet VS Baringo Traders Limited,2024-02-07,2024-11-22,closed,Hon. L. W. Maina,Kabarnet Magistrate Court,- Original,10 months,8,2024-11-22,2024
+MCTR/18/2023,MCTR,MCTR - Magistrate Court Traffic Case,Republic VS Peter Kiplagat,2023-04-18,2023-09-05,closed,Hon. A. C. Towett,Kabarnet Magistrate Court,- Original,5 months,6,2023-09-05,2023
+MCSUCC/E014/2022,MCSUCC,MCSUCC - Magistrate Court Succession Cause,Estate of Mary Jerotich VS Interested Parties,2022-06-20,2024-01-16,closed,Hon. S. M. Kiplimo,Kabarnet Magistrate Court,- Original,19 months,15,2024-01-16,2022
+HCCRC/05/2019,HCCRC,HCCRC - High Court Criminal Case,The Republic VS Saitoti Toroitich Kuresia,2019-11-28,2020-11-02,closed,Hon. Justice R. Lagat,Kabarnet High Court,- Original,12 months,21,2020-11-02,2019
+HCCRMISCAPPL/E004/2021,HCCRMISCAPPL,HCCRMISCAPPL - High Court Criminal Miscellaneous Application,Andrew Omondi VS Republic,2021-03-08,2021-07-12,closed,Hon. Justice M. K. Sergon,Kabarnet High Court,- Original,4 months,9,2021-07-12,2021
