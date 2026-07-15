@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { filterCases } from "@/lib/data/case-filtering";
 import { paginateItems } from "@/contracts/queries";
+import {
+  CASE_PAGE_SIZE_OPTIONS,
+  DEFAULT_CASE_PAGE_SIZE,
+  MAX_CASE_PAGE_SIZE,
+  parseCasePageSize,
+} from "@/config/case-pagination";
 import { SEED_CASES } from "@/data/seed/cases";
 import type { CaseFile, CaseFilters } from "@/types/case";
 
@@ -36,6 +42,15 @@ describe("seed data", () => {
       const hasHCCRC = highCourtCases.some((c) => c.caseNumber.startsWith("HCCRC"));
       expect(hasHCCRC).toBe(true);
     }
+  });
+
+  it("deduplicates overlapping CSV records by case number", () => {
+    expect(new Set(SEED_CASES.map((caseFile) => caseFile.caseNumber.toLowerCase())).size)
+      .toBe(SEED_CASES.length);
+  });
+
+  it("provides a unique stable row id for every mock case", () => {
+    expect(new Set(SEED_CASES.map((caseFile) => caseFile.id)).size).toBe(SEED_CASES.length);
   });
 });
 
@@ -254,6 +269,23 @@ describe("paginateItems", () => {
     const result = paginateItems(items);
     expect(result.items).toHaveLength(25);
     expect(result.pageSize).toBe(25);
+  });
+});
+
+describe("case page-size query", () => {
+  it.each(CASE_PAGE_SIZE_OPTIONS)("accepts %i cases per page", (pageSize) => {
+    expect(parseCasePageSize(String(pageSize))).toBe(pageSize);
+  });
+
+  it.each([undefined, "", "0", "25", "101", "invalid"])(
+    "falls back to the default for %s",
+    (pageSize) => {
+      expect(parseCasePageSize(pageSize)).toBe(DEFAULT_CASE_PAGE_SIZE);
+    },
+  );
+
+  it("caps the supported options at 100", () => {
+    expect(Math.max(...CASE_PAGE_SIZE_OPTIONS)).toBe(MAX_CASE_PAGE_SIZE);
   });
 });
 

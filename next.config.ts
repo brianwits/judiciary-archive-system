@@ -11,25 +11,9 @@ const nextConfig: NextConfig = {
     },
   },
 
-  /**
-   * Security & caching headers applied to all routes.
-   * Static assets (/_next/static) get aggressive immutable caching.
-   * HTML pages get short TTL with stale-while-revalidate for fast back-navigation.
-   */
+  /** HTML caching and security headers applied to application routes. */
   async headers() {
     return [
-      {
-        // Next.js already sets immutable caching for /_next/static/*, but we ensure
-        // it explicitly here. public/ dir assets aren't fingerprinted so skip them.
-        source: "/_next/static/:path*",
-        locale: false,
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
       {
         source: "/:path(\.html?$)",
         locale: false,

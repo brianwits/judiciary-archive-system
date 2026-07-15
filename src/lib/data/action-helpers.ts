@@ -79,7 +79,6 @@ export function revalidateTrackingMutation(): void {
   revalidatePath("/");
   revalidateTag(CACHE_TAGS.movements, "max");
   revalidateTag(CACHE_TAGS.dashboard, "max");
-  revalidateTag(CACHE_TAGS.reports, "max");
   revalidateTag(CACHE_TAGS.cases, "max");
   revalidateTag(CACHE_TAGS.audit, "max");
 }
@@ -88,11 +87,9 @@ export function revalidateTrackingMutation(): void {
 export function revalidateScanMutation(caseId: string): void {
   revalidatePath("/scanning");
   revalidatePath("/");
-  revalidatePath("/reports");
   revalidatePath(`/cases/${caseId}`);
   revalidateTag(CACHE_TAGS.audit, "max");
   revalidateTag(CACHE_TAGS.dashboard, "max");
-  revalidateTag(CACHE_TAGS.reports, "max");
 }
 
 /** Revalidate everything affected by registry ops. */
@@ -109,7 +106,6 @@ export function revalidateDocumentMutation(caseId: string): void {
   revalidatePath(`/cases/${caseId}`);
   revalidateTag(CACHE_TAGS.documents, "max");
   revalidateTag(CACHE_TAGS.dashboard, "max");
-  revalidateTag(CACHE_TAGS.reports, "max");
   revalidateTag(CACHE_TAGS.audit, "max");
 }
 

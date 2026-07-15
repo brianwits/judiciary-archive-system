@@ -23,6 +23,16 @@ import type { UserProfile } from "@/types/user";
 import type { NotificationPreferences } from "@/types/notification";
 import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/types/notification";
 import { normalizeCourtEmail } from "@/lib/email";
+import { buildMockDashboardData, buildMockReportData } from "@/lib/data/mock-analytics";
+import type { ReportFilters } from "@/lib/reports-computations";
+import {
+  decorateMovement,
+  movementMatchesFilters,
+  sortMovementsOperationally,
+  sortRecentMovementPriority,
+  summarizeMovements,
+} from "@/lib/movement-utils";
+import type { MovementFilters, MovementSummary } from "@/types/movement";
 
 // ─── Load cases from CSV ────────────────────────────────────────────────────
 const csvData = loadCasesFromCsv();
@@ -53,30 +63,19 @@ export const mockStore = {
     users.find((u) => normalizeCourtEmail(u.email) === normalizeCourtEmail(email)),
 
   getDashboard: (): DashboardData => {
-    const activeCases = cases.filter((c) => c.status === "open").length;
-    const archivedCases = cases.filter((c) => c.status === "archived").length;
-    const closedCases = cases.filter((c) => c.status === "closed").length;
-    const missingCases = cases.filter((c) => c.isMissing || c.status === "missing").length;
-    const pendingReturns = cases.filter((c) => c.status === "pending_return").length;
-    const totalCases = cases.length;
-
-    return {
-      ...SEED_DASHBOARD,
-      activeCasesCount: activeCases,
-      registryRequestsCount: registryRequests.filter((r) => r.status === "pending").length,
-      kpis: [
-        { label: "Total Cases", value: totalCases.toLocaleString(), trend: "↑ CTS Kabarnet import", trendDirection: "up", variant: "default" },
-        { label: "Active Files", value: activeCases.toLocaleString(), variant: "default" },
-        { label: "Closed Cases", value: closedCases.toLocaleString(), progress: totalCases > 0 ? Math.round((closedCases / totalCases) * 100) : 0, variant: "success" },
-        { label: "Missing Files", value: String(missingCases), trend: `${missingCases} reported`, trendDirection: missingCases > 0 ? "down" : "up", variant: missingCases > 0 ? "danger" : "success" },
-        { label: "Pending Returns", value: String(pendingReturns), variant: "warning" },
-        { label: "Registry Requests", value: String(registryRequests.length), progress: 64, variant: "default" },
-        { label: "Audit Flags", value: "0", variant: "default" },
-        { label: "Active Users", value: String(users.length), variant: "default" },
-      ],
-    };
+    return buildMockDashboardData({
+      cases,
+      users,
+      registryRequests,
+      baseDashboard: SEED_DASHBOARD,
+    });
   },
   getRegistryRequests: (): RegistryRequest[] => [...registryRequests],
+  getReportData: (filters: ReportFilters = {}) =>
+    buildMockReportData({
+      cases,
+      filters,
+    }),
   updateRegistryRequest: (id: string, data: Partial<RegistryRequest>): RegistryRequest | null => {
     const idx = registryRequests.findIndex((item) => item.id === id);
     if (idx === -1) return null;
@@ -203,36 +202,65 @@ export const mockStore = {
         shelfLocation: c.shelfLocation,
         filedDate: c.filedDate,
         storagePath: c.locationId ? buildMockArchiveDisplayPath(c.locationId) : "",
+        locationSource: "generated" as const,
       }))
-      .sort((a, b) => a.caseNumber.localeCompare(b.caseNumber));
+      .sort((a, b) => {
+        const yearDelta = (b.year ?? 0) - (a.year ?? 0);
+        return yearDelta !== 0 ? yearDelta : a.caseNumber.localeCompare(b.caseNumber);
+      });
   },
 
   getLocationChildren,
   getLocationById,
 
-  getMovements: () => [...movements],
-  getMovementsByCase: (caseId: string) => movements.filter((m) => m.caseId === caseId),
-  getOpenMovements: (): OpenMovementOption[] =>
+  getMovements: (filters?: MovementFilters) =>
     [...movements]
-      .filter((movement) => OPEN_MOVEMENT_STATUSES.has(movement.status))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .map((movement) => ({
-        id: movement.id,
-        caseId: movement.caseId,
-        caseNumber: movement.caseNumber,
-        destinationOffice: movement.destinationOffice,
-        createdAt: movement.createdAt,
-      })),
-  getRecentMovements: (limit = 5) =>
-    [...movements].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit),
+      .map((movement) => decorateMovement(movement))
+      .filter((movement) => movementMatchesFilters(movement, filters))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+  getMovementsByCase: (caseId: string) =>
+    movements
+      .filter((m) => m.caseId === caseId)
+      .map((movement) => decorateMovement(movement)),
+  getOpenMovements: (filters?: MovementFilters): OpenMovementOption[] =>
+    sortMovementsOperationally(
+      [...movements]
+        .map((movement) => decorateMovement(movement))
+        .filter((movement) => OPEN_MOVEMENT_STATUSES.has(movement.status))
+        .filter((movement) => movementMatchesFilters(movement, filters)),
+    ).map((movement) => ({
+      id: movement.id,
+      caseId: movement.caseId,
+      caseNumber: movement.caseNumber,
+      caseFamily: movement.caseFamily,
+      archiveCode: movement.archiveCode,
+      shelfLocation: movement.shelfLocation,
+      expectedReturnDate: movement.expectedReturnDate,
+      status: movement.status,
+      isOverdue: movement.isOverdue,
+      destinationOffice: movement.destinationOffice,
+      createdAt: movement.createdAt,
+    })),
+  getRecentMovements: (limit = 5, filters?: MovementFilters) =>
+    sortRecentMovementPriority(
+      [...movements]
+        .map((movement) => decorateMovement(movement))
+        .filter((movement) => movementMatchesFilters(movement, filters)),
+    ).slice(0, limit),
+  getMovementSummary: (filters?: MovementFilters): MovementSummary =>
+    summarizeMovements(
+      [...movements]
+        .map((movement) => decorateMovement(movement))
+        .filter((movement) => movementMatchesFilters(movement, filters)),
+    ),
 
   addMovement: (movement: Omit<FileMovement, "id" | "createdAt" | "updatedAt">): FileMovement => {
-    const newMovement: FileMovement = {
+    const newMovement = decorateMovement({
       ...movement,
       id: `mov-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+    });
     movements = [newMovement, ...movements];
     return newMovement;
   },
@@ -240,7 +268,11 @@ export const mockStore = {
   updateMovement: (id: string, data: Partial<FileMovement>): FileMovement | null => {
     const idx = movements.findIndex((m) => m.id === id);
     if (idx === -1) return null;
-    movements[idx] = { ...movements[idx], ...data, updatedAt: new Date().toISOString() };
+    movements[idx] = decorateMovement({
+      ...movements[idx],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
     return movements[idx];
   },
 

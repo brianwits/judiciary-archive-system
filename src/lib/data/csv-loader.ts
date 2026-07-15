@@ -216,9 +216,7 @@ export function loadCasesFromCsv(): CsvLoadResult {
     return cachedResult;
   }
 
-  const categoryCounts: Record<string, number> = {};
-  const yearCounts: Record<string, number> = {};
-  const allCases: CaseFile[] = [];
+  const caseByNumber = new Map<string, CaseFile>();
   let fileCount = 0;
   let totalRows = 0;
 
@@ -240,8 +238,15 @@ export function loadCasesFromCsv(): CsvLoadResult {
         totalRows += rawRows.length;
 
         for (const row of rawRows) {
-          const caseFile = mapRowToCaseFile(row, categoryCounts, yearCounts);
-          allCases.push(caseFile);
+          const caseFile = mapRowToCaseFile(row);
+          const key = caseFile.caseNumber.trim().toLowerCase();
+          const existing = caseByNumber.get(key);
+
+          // Source folders overlap. Match the live seed generator by retaining one
+          // canonical case number and preferring the row with fresher CTS metadata.
+          if (!existing || (!existing.sourceUpdatedAt && caseFile.sourceUpdatedAt)) {
+            caseByNumber.set(key, caseFile);
+          }
         }
       }
     }
@@ -251,8 +256,17 @@ export function loadCasesFromCsv(): CsvLoadResult {
     return cachedResult;
   }
 
+  const cases = [...caseByNumber.values()];
+  const categoryCounts: Record<string, number> = {};
+  const yearCounts: Record<string, number> = {};
+  for (const caseFile of cases) {
+    categoryCounts[caseFile.caseTypeCode] = (categoryCounts[caseFile.caseTypeCode] ?? 0) + 1;
+    const yearKey = String(caseFile.year);
+    yearCounts[yearKey] = (yearCounts[yearKey] ?? 0) + 1;
+  }
+
   cachedResult = {
-    cases: allCases,
+    cases,
     stats: {
       totalFiles: fileCount,
       totalRows,
@@ -266,8 +280,6 @@ export function loadCasesFromCsv(): CsvLoadResult {
 
 function mapRowToCaseFile(
   row: CtsRawRow,
-  categoryCounts: Record<string, number>,
-  yearCounts: Record<string, number>,
 ): CaseFile {
   const { plaintiff, defendant } = parseParties(row.case_title_parties);
   const courtStation = inferCourtStation(row.registry_court ?? "");
@@ -275,11 +287,6 @@ function mapRowToCaseFile(
   const year = parseInt(row.source_year_filter, 10) || 0;
   const caseNo = extractCaseNo(row.case_number);
   const caseTypeCode = ((row.case_type_code ?? row.case_number.split("/")[0]) ?? "MCCR").trim().toUpperCase();
-
-  // Track stats
-  categoryCounts[caseTypeCode] = (categoryCounts[caseTypeCode] || 0) + 1;
-  const yearKey = String(year);
-  yearCounts[yearKey] = (yearCounts[yearKey] || 0) + 1;
 
   // Category resolution — use explicit map first, fall back to prefix lookup
   const caseCategoryCode = CASE_CATEGORY_BY_CTS_CODE[caseTypeCode]

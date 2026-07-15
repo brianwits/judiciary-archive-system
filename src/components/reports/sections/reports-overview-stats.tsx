@@ -1,13 +1,4 @@
-"use client";
-
-import {
-  Activity,
-  Archive,
-  ArrowDownRight,
-  ArrowUpRight,
-  ScanLine,
-  ShieldAlert,
-} from "lucide-react";
+import { Archive, ArrowDownRight, ArrowUpRight, BookOpenText, Scale, ShieldAlert } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -68,8 +59,8 @@ export function ReportsOverviewStats({ data }: { data: ReportData }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
-        label="Archived files"
-        value={formatCompact(d.latestArchive.count)}
+        label="Case files"
+        value={formatCompact(data.totalCases)}
         detail={`Through ${d.latestArchive.month} · ${d.archiveGrowthRate >= 0 ? "+" : ""}${d.archiveGrowthRate.toFixed(1)}% vs prev`}
         icon={Archive}
         tone="emerald"
@@ -84,19 +75,19 @@ export function ReportsOverviewStats({ data }: { data: ReportData }) {
         trend={d.missingDelta <= 0 ? "down" : "up"}
       />
       <StatCard
-        label="Movement recovery"
-        value={`${d.movementRecovery}%`}
-        detail={`${formatNumber(d.totalReturns)} returns / ${formatNumber(d.totalCheckouts)} checkouts`}
-        icon={Activity}
+        label="Years covered"
+        value={formatNumber(d.yearsCovered)}
+        detail={`${d.topAgeBand.label} holds ${formatNumber(d.topAgeBand.value)} files`}
+        icon={BookOpenText}
         tone="blue"
+        trend="up"
       />
       <StatCard
-        label="Weekly scans"
-        value={formatNumber(d.totalScans)}
-        detail={`Peak: ${d.peakScanDay.day} · ${formatNumber(d.peakScanDay.scans)} scans`}
-        icon={ScanLine}
+        label="Court concentration"
+        value={d.topDivision.name}
+        detail={`${formatNumber(d.topDivision.value)} files · lead judge ${d.topJudge.name} · top category ${d.topCaseCategory.categoryName}`}
+        icon={Scale}
         tone="gold"
-        trend="up"
       />
     </div>
   );

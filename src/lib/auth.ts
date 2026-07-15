@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
-import { fetchProfileRowForUser } from "@/lib/supabase/fetch-profile";
+import { DEMO_PASSWORD, MOCK_USERS } from "@/data/seed/users";
 import { isMockDataEnabled } from "@/lib/config";
 import { mockStore } from "@/lib/data/mock-store";
-import { DEMO_PASSWORD, MOCK_USERS } from "@/data/seed/users";
 import { normalizeCourtEmail } from "@/lib/email";
+import { createClient } from "@/lib/supabase/server";
+import { fetchProfileRowForUser } from "@/lib/supabase/fetch-profile";
 import { parseNotificationPreferences } from "@/types/notification";
 import { mapDbRoleToAppRole } from "@/lib/roles/map-db-role";
 import {
@@ -18,7 +18,6 @@ import {
 import type { UserProfile } from "@/types/user";
 
 export type SessionProfile = UserProfile;
-
 export const MOCK_SESSION_COOKIE = "mock_session_user_id";
 
 export const getSessionProfile = cache(async (): Promise<SessionProfile | null> => {
@@ -65,13 +64,14 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
 
 export async function mockSignIn(email: string, password: string): Promise<{ error?: string }> {
   const normalizedEmail = normalizeCourtEmail(email);
-  const user = MOCK_USERS.find((u) => normalizeCourtEmail(u.email) === normalizedEmail);
+  const user = MOCK_USERS.find((candidate) => normalizeCourtEmail(candidate.email) === normalizedEmail);
   if (!user || password !== (user.password ?? DEMO_PASSWORD)) {
     return { error: "Invalid email or password." };
   }
   if (!user.isActive) {
     return { error: "This account has been deactivated." };
   }
+
   const cookieStore = await cookies();
   cookieStore.set(MOCK_SESSION_COOKIE, user.id, {
     httpOnly: true,

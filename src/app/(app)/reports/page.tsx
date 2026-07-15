@@ -11,15 +11,15 @@ import {
 } from "@/components/shared/page-skeletons";
 import { LazyReportCharts } from "@/components/reports/lazy-report-charts";
 import { ReportFilters } from "@/components/reports/report-filters";
+import { ReportTaxonomyBreakdown } from "@/components/reports/report-taxonomy-breakdown";
+import { ReportsOverviewStats } from "@/components/reports/sections/reports-overview-stats";
 import { getReportData } from "@/lib/data";
 import type { ReportFilters as ReportFilterValues } from "@/lib/reports-computations";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Reports & Analytics",
   description:
-    "Judiciary archive performance, movement control, and digitization trends.",
+    "High Court, Magistrate Court, and ELC case coverage, case mix, and closed-case analytics.",
 };
 
 type ReportsPageProps = {
@@ -33,12 +33,12 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     <div className="reports-analytics-page space-y-8">
       <PageHeader
         title="Reports & Analytics"
-        subtitle="Judiciary archive performance, movement control, and digitization trends."
+        subtitle="High Court, Magistrate Court, and ELC case coverage, case mix, and closed-case analytics."
         meta={
           <>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-0.5 font-medium">
               <BarChart3 className="size-3.5 text-primary" aria-hidden />
-              Operational dashboard
+              High Court, Magistrate & ELC analytics
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Clock className="size-3.5 shrink-0" aria-hidden />
@@ -61,7 +61,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 async function ReportsContent({ filters }: { filters: ReportFilterValues }) {
   const data = await getReportData(filters);
 
-  return <LazyReportCharts data={data} />;
+  return (
+    <div className="space-y-8">
+      <ReportsOverviewStats data={data} />
+      <ReportTaxonomyBreakdown data={data} />
+      <LazyReportCharts data={data} />
+    </div>
+  );
 }
 
 function parseReportFilters(params: Record<string, string | string[] | undefined>): ReportFilterValues {

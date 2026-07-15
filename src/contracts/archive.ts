@@ -13,10 +13,21 @@ import { CASE_STATUSES, type CaseStatus } from "@/types/case";
 import { getCaseCategoryCode, getCaseCategoryLabel } from "@/lib/case-category";
 import { resolveCaseType } from "@/contracts/cases";
 import { getCaseTypeDefinition } from "@/data/case-types";
+import { decorateMovement } from "@/lib/movement-utils";
 
 export function movementRowToDto(
   row: FileMovementRow & {
-    cases?: { case_number: string; plaintiff: string | null; defendant: string | null; title: string } | null;
+    cases?: {
+      case_number: string;
+      plaintiff: string | null;
+      defendant: string | null;
+      title: string;
+      case_type: string | null;
+      case_family: string | null;
+      court_division: string | null;
+      archive_code: string | null;
+      shelf_location: string | null;
+    } | null;
     profiles?: { full_name: string | null } | null;
   },
 ): FileMovement {
@@ -24,11 +35,16 @@ export function movementRowToDto(
   const plaintiff = caseRow?.plaintiff ?? caseRow?.title ?? "";
   const defendant = caseRow?.defendant ?? "";
 
-  return {
+  return decorateMovement({
     id: row.id,
     caseId: row.case_id,
     caseNumber: caseRow?.case_number ?? "",
     caseTitle: defendant ? `${plaintiff} v. ${defendant}` : plaintiff,
+    caseFamily: caseRow?.case_family ?? caseRow?.case_type ?? "Other",
+    courtDivision: caseRow?.court_division ?? "",
+    archiveCode: caseRow?.archive_code ?? null,
+    shelfLocation: caseRow?.shelf_location ?? null,
+    caseType: caseRow?.case_type ?? null,
     checkedOutBy: row.checked_out_by ?? "",
     checkedOutByName: row.profiles?.full_name ?? "Unknown",
     destinationOffice: row.destination_office,
@@ -38,7 +54,7 @@ export function movementRowToDto(
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  });
 }
 
 export function auditLogRowToDto(
@@ -69,6 +85,7 @@ export function archiveLocationRowToDto(row: ArchiveLocationRow): ArchiveLocatio
     category: row.category ?? undefined,
     stationId: row.station_id,
     active: row.active,
+    mappingSource: row.mapping_source === "generated" ? "generated" : "verified",
   };
 }
 
@@ -97,6 +114,7 @@ export type ArchiveStoredCaseRpcRow = {
   shelf_location: string | null;
   filed_date: string | null;
   storage_path: string | null;
+  location_source?: string | null;
   matching_total: number;
 };
 
@@ -131,11 +149,16 @@ export function archiveStoredCaseRpcRowToDto(row: ArchiveStoredCaseRpcRow): Arch
     shelfLocation: row.shelf_location,
     filedDate: row.filed_date,
     storagePath: row.storage_path,
+    locationSource: row.location_source === "generated" ? "generated" : "verified",
   };
 }
 
 /** Case mapped to shelf/box leaf + optional path string (`R1 › B1 › …` from `archive_locations`). */
-export function caseRowToArchiveStoredCase(row: CaseRow, storagePath: string | null): ArchiveStoredCase {
+export function caseRowToArchiveStoredCase(
+  row: CaseRow,
+  storagePath: string | null,
+  locationSource: ArchiveStoredCase["locationSource"] = "generated",
+): ArchiveStoredCase {
   const definition = getCaseTypeDefinition(row.case_type_id);
   const caseType = resolveCaseType(row.case_type, row.case_number);
   const caseCategoryCode = getCaseCategoryCode(row.case_category_code, row.case_number, {
@@ -170,6 +193,7 @@ export function caseRowToArchiveStoredCase(row: CaseRow, storagePath: string | n
     shelfLocation: row.shelf_location,
     filedDate: row.filed_date,
     storagePath,
+    locationSource,
   };
 }
 
@@ -190,6 +214,7 @@ export function roomSummaryFromLocation(row: ArchiveLocationRow): RoomSummary {
     occupiedCount: row.occupied_count,
     occupancyPercent,
     status,
+    mappingSource: row.mapping_source === "generated" ? "generated" : "verified",
   };
 }
 

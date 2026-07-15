@@ -1,8 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  CASE_PAGE_SIZE_OPTIONS,
+  DEFAULT_CASE_PAGE_SIZE,
+  parseCasePageSize,
+} from "@/config/case-pagination";
 import { CASE_STATUSES } from "@/types/case";
 import { CASE_TYPE_DEFINITIONS } from "@/data/case-types";
+import { COURT_DIVISIONS } from "@/types/case";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,14 +27,23 @@ export function CaseFilters() {
 
   const caseTypeId = searchParams.get("caseTypeId") ?? "";
   const classification = searchParams.get("classification") ?? "";
+  const courtDivision = searchParams.get("courtDivision") ?? "";
   const year = searchParams.get("year") ?? "";
   const status = searchParams.get("status") ?? "";
+  const pageSize = String(parseCasePageSize(searchParams.get("pageSize") ?? undefined));
 
   function updateParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value);
-    else params.delete(key);
-    router.push(`/cases?${params.toString()}`);
+    if (key === "pageSize" && value === String(DEFAULT_CASE_PAGE_SIZE)) {
+      params.delete(key);
+    } else if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    params.delete("page");
+    const query = params.toString();
+    router.push(query ? `/cases?${query}` : "/cases");
   }
 
   function clearFilters() {
@@ -70,6 +85,23 @@ export function CaseFilters() {
       </div>
 
       <div className="space-y-2">
+        <Label>Court level</Label>
+        <Select value={courtDivision} onValueChange={(v) => updateParam("courtDivision", v ?? "")}>
+          <SelectTrigger className="w-full xl:w-[200px]">
+            <SelectValue placeholder="All courts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All courts</SelectItem>
+            {COURT_DIVISIONS.map((division) => (
+              <SelectItem key={division} value={division}>
+                {division === "Environment & Land" ? "ELC" : division}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label>Year</Label>
         <Select value={year} onValueChange={(v) => updateParam("year", v ?? "")}>
           <SelectTrigger className="w-full xl:w-[120px]">
@@ -97,6 +129,22 @@ export function CaseFilters() {
             {CASE_STATUSES.map((s) => (
               <SelectItem key={s} value={s}>
                 {s.replace("_", " ")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Cases per page</Label>
+        <Select value={pageSize} onValueChange={(v) => updateParam("pageSize", v ?? "")}>
+          <SelectTrigger className="w-full xl:w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CASE_PAGE_SIZE_OPTIONS.map((option) => (
+              <SelectItem key={option} value={String(option)}>
+                {option}
               </SelectItem>
             ))}
           </SelectContent>

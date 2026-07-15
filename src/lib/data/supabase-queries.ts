@@ -18,15 +18,29 @@ import {
 import { mapDbRoleToAppRole } from "@/lib/roles/map-db-role";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizeCourtEmail } from "@/lib/email";
+import { listProfilesWithAuthEmails } from "@/lib/supabase/admin-profiles";
+import {
+  decorateMovement,
+  movementFamilyDbValues,
+  movementMatchesFilters,
+  sortMovementsOperationally,
+  sortRecentMovementPriority,
+  summarizeMovements,
+} from "@/lib/movement-utils";
 import type { AuditAction, AuditLog } from "@/types/audit";
 import type { ArchiveLocation, ArchiveStoredCase, RoomSummary } from "@/types/archive";
 import type { CaseFile, CaseFilters } from "@/types/case";
 import type { ScanMatchType } from "@/contracts/scanning";
 import type { DashboardData, RegistryRequest } from "@/types/dashboard";
-import type { AuditLogRow, ArchiveLocationRow, Json, ProfileRow } from "@/types/database";
+import type {
+  AuditLogRow,
+  ArchiveLocationRow,
+  FileMovementRow,
+  Json,
+  ProfileRow,
+} from "@/types/database";
 import type { CaseDocument, DocumentCategory, OcrStatus } from "@/types/document";
-import type { FileMovement, OpenMovementOption } from "@/types/movement";
+import type { FileMovement, MovementFilters, MovementSummary, OpenMovementOption } from "@/types/movement";
 import type { UserProfile } from "@/types/user";
 import { parseNotificationPreferences } from "@/types/notification";
 
@@ -51,7 +65,7 @@ function postgrestIlikePattern(value: string): string {
 }
 
 function buildArchiveCodesPath(
-  byId: Map<string, Pick<ArchiveLocationRow, "parent_id" | "code">>,
+  byId: Map<string, Pick<ArchiveLocationRow, "parent_id" | "code" | "mapping_source">>,
   leafId: string | null,
 ): string | null {
   if (!leafId) return null;
@@ -67,6 +81,31 @@ function buildArchiveCodesPath(
   return segments.reverse().join(" › ");
 }
 
+function buildDescendantLocationIds(
+  rows: Pick<ArchiveLocationRow, "id" | "parent_id">[],
+  rootId: string,
+) {
+  const childrenByParent = new Map<string | null, string[]>();
+  for (const row of rows) {
+    const siblings = childrenByParent.get(row.parent_id) ?? [];
+    siblings.push(row.id);
+    childrenByParent.set(row.parent_id, siblings);
+  }
+
+  const descendants = new Set<string>();
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || descendants.has(current)) continue;
+    descendants.add(current);
+    for (const childId of childrenByParent.get(current) ?? []) {
+      queue.push(childId);
+    }
+  }
+
+  return [...descendants];
+}
+
 async function fetchArchiveStoredCasesDirect(
   supabase: SupabaseReadClient,
   limitCap: number,
@@ -78,7 +117,7 @@ async function fetchArchiveStoredCasesDirect(
         .from("cases")
         .select("*", { count: "exact", head: true })
         .not("location_id", "is", null),
-      supabase.from("archive_locations").select("id, parent_id, code"),
+      supabase.from("archive_locations").select("id, parent_id, code, mapping_source"),
     ]);
 
   if (countError) throw new Error(countError.message);
@@ -86,8 +125,11 @@ async function fetchArchiveStoredCasesDirect(
 
   const locationById = new Map<
     string,
-    Pick<ArchiveLocationRow, "parent_id" | "code">
-  >((locationRows ?? []).map((loc) => [loc.id, { parent_id: loc.parent_id, code: loc.code }]));
+    Pick<ArchiveLocationRow, "parent_id" | "code" | "mapping_source">
+  >((locationRows ?? []).map((loc) => [
+    loc.id,
+    { parent_id: loc.parent_id, code: loc.code, mapping_source: loc.mapping_source },
+  ]));
 
   const { data: caseRows, error: casesError } = await supabase
     .from("cases")
@@ -101,7 +143,13 @@ async function fetchArchiveStoredCasesDirect(
   const rows = caseRows ?? [];
   return {
     items: rows.map((row) =>
-      caseRowToArchiveStoredCase(row, buildArchiveCodesPath(locationById, row.location_id)),
+      caseRowToArchiveStoredCase(
+        row,
+        buildArchiveCodesPath(locationById, row.location_id),
+        row.location_id && locationById.get(row.location_id)?.mapping_source === "generated"
+          ? "generated"
+          : "verified",
+      ),
     ),
     total: totalStored ?? 0,
   };
@@ -135,40 +183,34 @@ async function profileNameMap(
   );
 }
 
-export async function fetchUsersFromSupabase(client?: SupabaseReadClient): Promise<UserProfile[]> {
-  const supabase = client ?? await createClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .order("full_name", { ascending: true });
+function applyMovementQueryFilters<T extends {
+  eq: (column: string, value: string) => T;
+  in: (column: string, values: string[]) => T;
+}>(query: T, filters?: MovementFilters) {
+  if (!filters) return query;
 
-  if (error) throw new Error(error.message);
-
-  const profiles = data ?? [];
-  const emailById = new Map<string, string>();
-
-  try {
-    const admin = createAdminClient();
-    const perPage = 1000;
-    for (let page = 1; page <= 100; page += 1) {
-      const { data: authData, error: authError } = await admin.auth.admin.listUsers({
-        page,
-        perPage,
-      });
-      if (authError) throw authError;
-      for (const user of authData.users) {
-        if (user.email) emailById.set(user.id, user.email);
-      }
-      if (authData.users.length < perPage) break;
-    }
-  } catch (e) {
-    console.error("Admin email merge failed; returning profiles without auth emails.", e);
+  if (filters.status === "overdue") {
+    query = query.eq("status", "overdue");
+  } else if (filters.status === "returned") {
+    query = query.eq("status", "returned");
+  } else if (filters.status === "open") {
+    query = query.in("status", ["checked_out", "in_transit", "overdue"]);
   }
+
+  if (filters.family && filters.family !== "all") {
+    query = query.in("cases.case_family", [...movementFamilyDbValues(filters.family)]);
+  }
+
+  return query;
+}
+
+export async function fetchUsersFromSupabase(): Promise<UserProfile[]> {
+  const profiles = await listProfilesWithAuthEmails();
 
   return profiles.map((profile) => ({
     id: profile.id,
     fullName: profile.full_name ?? "User",
-    email: normalizeCourtEmail(emailById.get(profile.id) ?? ""),
+    email: profile.email ?? "",
     pjNumber: profile.pj_number ?? null,
     department: profile.department ?? null,
     role: mapDbRoleToAppRole(profile.role),
@@ -276,51 +318,136 @@ export async function fetchCasesPageFromSupabase(
 
 export async function fetchMovementsFromSupabase(
   listQuery?: Partial<ListQuery>,
+  filters?: MovementFilters,
   client?: SupabaseReadClient,
 ): Promise<FileMovement[]> {
   const supabase = client ?? await createClient();
   const { from, to } = pageRange(listQuery);
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("file_movements")
-    .select("*, cases(case_number, plaintiff, defendant, title)")
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .select("*, cases!inner(case_number, plaintiff, defendant, title, case_type, case_family, court_division, archive_code, shelf_location)")
+    .order("created_at", { ascending: false });
+
+  query = applyMovementQueryFilters(query, filters);
+  const { data, error } = await query.range(from, to);
 
   if (error) throw new Error(error.message);
 
   const names = await profileNameMap((data ?? []).map((row) => row.checked_out_by ?? ""), supabase);
 
-  return (data ?? []).map((row) =>
-    movementRowToDto({
-      ...row,
-      profiles: row.checked_out_by
-        ? { full_name: names.get(row.checked_out_by) ?? "Unknown" }
-        : null,
-    }),
-  );
+  const movements = (data ?? [])
+    .map((row) =>
+      movementRowToDto({
+        ...row,
+        profiles: row.checked_out_by
+          ? { full_name: names.get(row.checked_out_by) ?? "Unknown" }
+          : null,
+      }),
+    );
+
+  return movements.filter((movement) => movementMatchesFilters(movement, filters));
 }
 
 export async function fetchOpenMovementsFromSupabase(
+  filters?: MovementFilters,
   client?: SupabaseReadClient,
 ): Promise<OpenMovementOption[]> {
   const supabase = client ?? await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("file_movements")
-    .select("id, case_id, destination_office, created_at, cases(case_number)")
+    .select("id, case_id, destination_office, created_at, expected_return_date, actual_return_date, status, cases!inner(case_number, case_type, case_family, court_division, archive_code, shelf_location)")
     .in("status", ["checked_out", "in_transit", "overdue"])
-    .order("created_at", { ascending: false });
+    .order("expected_return_date", { ascending: true });
+
+  query = applyMovementQueryFilters(query, filters);
+
+  const { data, error } = await query;
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    caseId: row.case_id,
-    caseNumber: row.cases?.case_number ?? "",
-    destinationOffice: row.destination_office,
-    createdAt: row.created_at,
+  return sortMovementsOperationally(
+    (data ?? [])
+      .map((row) =>
+        decorateMovement({
+          id: row.id,
+          caseId: row.case_id,
+          caseNumber: row.cases?.case_number ?? "",
+          caseFamily: row.cases?.case_family ?? row.cases?.case_type ?? "Other",
+          courtDivision: row.cases?.court_division ?? "",
+          archiveCode: row.cases?.archive_code ?? null,
+          shelfLocation: row.cases?.shelf_location ?? null,
+          caseType: row.cases?.case_type ?? null,
+          caseTitle: row.cases?.case_number ?? "",
+          checkedOutBy: "",
+          checkedOutByName: "",
+          destinationOffice: row.destination_office,
+          purpose: "",
+          expectedReturnDate: row.expected_return_date,
+          actualReturnDate: row.actual_return_date,
+          status: row.status,
+          createdAt: row.created_at,
+          updatedAt: row.created_at,
+        }),
+      )
+      .filter((movement) => movementMatchesFilters(movement, filters)),
+  ).map((movement) => ({
+    id: movement.id,
+    caseId: movement.caseId,
+    caseNumber: movement.caseNumber,
+    caseFamily: movement.caseFamily,
+    archiveCode: movement.archiveCode,
+    shelfLocation: movement.shelfLocation,
+    expectedReturnDate: movement.expectedReturnDate,
+    status: movement.status,
+    isOverdue: movement.isOverdue,
+    destinationOffice: movement.destinationOffice,
+    createdAt: movement.createdAt,
   }));
+}
+
+export async function fetchMovementSummaryFromSupabase(
+  filters?: MovementFilters,
+  client?: SupabaseReadClient,
+): Promise<MovementSummary> {
+  const supabase = client ?? await createClient();
+
+  let query = supabase
+    .from("file_movements")
+    .select("id, status, expected_return_date, actual_return_date, created_at, cases!inner(case_type, case_family, court_division)");
+
+  query = applyMovementQueryFilters(query, filters);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  return summarizeMovements(
+    (data ?? [])
+      .map((row) =>
+        decorateMovement({
+          id: row.id,
+          caseId: "",
+          caseNumber: "",
+          caseTitle: "",
+          caseFamily: row.cases?.case_family ?? row.cases?.case_type ?? "Other",
+          courtDivision: row.cases?.court_division ?? "",
+          archiveCode: null,
+          shelfLocation: null,
+          caseType: row.cases?.case_type ?? null,
+          checkedOutBy: "",
+          checkedOutByName: "",
+          destinationOffice: "",
+          purpose: "",
+          expectedReturnDate: row.expected_return_date,
+          actualReturnDate: row.actual_return_date,
+          status: row.status,
+          createdAt: row.created_at,
+          updatedAt: row.created_at,
+        }),
+      )
+      .filter((movement) => movementMatchesFilters(movement, filters)),
+  );
 }
 
 export async function fetchMovementsSearchFromSupabase(
@@ -333,49 +460,63 @@ export async function fetchMovementsSearchFromSupabase(
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  const pattern = `%${trimmed}%`;
-
-  const { data: matchingCases } = await supabase
-    .from("cases")
-    .select("id")
-    .ilike("case_number", pattern);
-
-  const caseIds = (matchingCases ?? []).map((row) => row.id);
-
-  let movementQuery = supabase
-    .from("file_movements")
-    .select("*, cases(case_number, plaintiff, defendant, title)")
-    .order("created_at", { ascending: false })
-    .range(from, to);
-
-  if (caseIds.length > 0) {
-    movementQuery = movementQuery.or(
-      `destination_office.ilike.${postgrestIlikePattern(trimmed)},case_id.in.(${caseIds.join(",")})`,
-    );
-  } else {
-    movementQuery = movementQuery.ilike("destination_office", pattern);
-  }
-
-  const { data, error } = await movementQuery;
+  const { data, error } = await supabase.rpc("search_file_movements", {
+    search_query: trimmed,
+    result_limit: to - from + 1,
+    result_offset: from,
+  });
   if (error) throw new Error(error.message);
 
-  const names = await profileNameMap((data ?? []).map((row) => row.checked_out_by ?? ""), supabase);
+  const rows = (data ?? []) as Array<{
+    id: string;
+    case_id: string;
+    checked_out_by: string | null;
+    destination_office: string;
+    purpose: string;
+    expected_return_date: string;
+    actual_return_date: string | null;
+    status: FileMovementRow["status"];
+    created_at: string;
+    updated_at: string;
+    case_number: string;
+    plaintiff: string | null;
+    defendant: string | null;
+    title: string;
+    case_type: string | null;
+    case_family: string | null;
+    court_division: string | null;
+    archive_code: string | null;
+    shelf_location: string | null;
+  }>;
 
-  return (data ?? []).map((row) =>
+  const names = await profileNameMap(rows.map((row) => row.checked_out_by ?? ""), supabase);
+
+  return rows.map((row) =>
     movementRowToDto({
       ...row,
-      profiles: row.checked_out_by
-        ? { full_name: names.get(row.checked_out_by) ?? "Unknown" }
-        : null,
+      cases: {
+        case_number: row.case_number,
+        plaintiff: row.plaintiff,
+        defendant: row.defendant,
+        title: row.title,
+        case_type: row.case_type,
+        case_family: row.case_family,
+        court_division: row.court_division,
+        archive_code: row.archive_code,
+        shelf_location: row.shelf_location,
+      },
+      profiles: row.checked_out_by ? { full_name: names.get(row.checked_out_by) ?? "Unknown" } : null,
     }),
   );
 }
 
 export async function fetchRecentMovementsFromSupabase(
   limit = 5,
+  filters?: MovementFilters,
   client?: SupabaseReadClient,
 ): Promise<FileMovement[]> {
-  return fetchMovementsFromSupabase({ page: 1, pageSize: limit }, client);
+  const movements = await fetchMovementsFromSupabase({ page: 1, pageSize: Math.max(limit * 4, 20) }, filters, client);
+  return sortRecentMovementPriority(movements).slice(0, limit);
 }
 
 export async function fetchMovementsByCaseFromSupabase(
@@ -385,7 +526,7 @@ export async function fetchMovementsByCaseFromSupabase(
   const supabase = client ?? await createClient();
   const { data, error } = await supabase
     .from("file_movements")
-    .select("*, cases(case_number, plaintiff, defendant, title)")
+    .select("*, cases(case_number, plaintiff, defendant, title, case_type, case_family, court_division, archive_code, shelf_location)")
     .eq("case_id", caseId)
     .order("created_at", { ascending: false });
 
@@ -565,6 +706,62 @@ export async function fetchArchiveStoredCasesFromSupabase(
   return {
     items: rows.map(archiveStoredCaseRpcRowToDto),
     total: Number(rows[0]?.matching_total ?? 0),
+  };
+}
+
+export async function fetchArchiveStoredCasesForRoomFromSupabase(
+  roomId: string,
+  opts?: { limit?: number; offset?: number },
+  client?: SupabaseReadClient,
+): Promise<{ items: ArchiveStoredCase[]; total: number }> {
+  const supabase = client ?? await createClient();
+  const limitCap = Math.min(Math.max(opts?.limit ?? 60, 1), 500);
+  const offset = Math.max(opts?.offset ?? 0, 0);
+
+  const { data: locationRows, error: locationsError } = await supabase
+    .from("archive_locations")
+    .select("id, parent_id, code, mapping_source");
+
+  if (locationsError) throw new Error(locationsError.message);
+
+  const rows = locationRows ?? [];
+  const descendantIds = buildDescendantLocationIds(rows, roomId);
+  if (descendantIds.length === 0) {
+    return { items: [], total: 0 };
+  }
+
+  const locationById = new Map<
+    string,
+    Pick<ArchiveLocationRow, "parent_id" | "code" | "mapping_source">
+  >(rows.map((row) => [row.id, row]));
+
+  const [{ count: total, error: countError }, { data: caseRows, error: casesError }] = await Promise.all([
+    supabase
+      .from("cases")
+      .select("*", { count: "exact", head: true })
+      .in("location_id", descendantIds),
+    supabase
+      .from("cases")
+      .select("*")
+      .in("location_id", descendantIds)
+      .order("case_number", { ascending: true })
+      .range(offset, offset + limitCap - 1),
+  ]);
+
+  if (countError) throw new Error(countError.message);
+  if (casesError) throw new Error(casesError.message);
+
+  return {
+    items: (caseRows ?? []).map((row) =>
+      caseRowToArchiveStoredCase(
+        row,
+        buildArchiveCodesPath(locationById, row.location_id),
+        row.location_id && locationById.get(row.location_id)?.mapping_source === "generated"
+          ? "generated"
+          : "verified",
+      ),
+    ),
+    total: total ?? 0,
   };
 }
 
@@ -833,56 +1030,14 @@ export async function insertAuditLog(
 
 export async function fetchCaseByNumberFromSupabase(caseNumber: string) {
   const supabase = await createClient();
-  const normalized = caseNumber.trim().toLowerCase();
+  const { data, error } = await supabase.rpc("lookup_case_by_identifier", {
+    identifier: caseNumber,
+  });
 
-  const primary = await supabase.from("cases").select("*").eq("case_number", caseNumber).maybeSingle();
-  if (primary.error) throw new Error(primary.error.message);
-  if (primary.data) return caseRowToDto(primary.data);
+  if (error) throw new Error(error.message);
 
-  const rawMatch = await supabase
-    .from("cases")
-    .select("*")
-    .eq("case_number_raw", caseNumber)
-    .maybeSingle();
-  if (rawMatch.error) throw new Error(rawMatch.error.message);
-  if (rawMatch.data) return caseRowToDto(rawMatch.data);
-
-  if (normalized) {
-    const normalizedMatch = await supabase
-      .from("cases")
-      .select("*")
-      .eq("case_number_normalized", normalized)
-      .maybeSingle();
-    if (normalizedMatch.error) throw new Error(normalizedMatch.error.message);
-    if (normalizedMatch.data) return caseRowToDto(normalizedMatch.data);
-
-    const trackingMatch = await supabase
-      .from("cases")
-      .select("*")
-      .eq("tracking_number", caseNumber.trim())
-      .maybeSingle();
-    if (trackingMatch.error) throw new Error(trackingMatch.error.message);
-    if (trackingMatch.data) return caseRowToDto(trackingMatch.data);
-  }
-
-  const { data: alias, error: aliasError } = await supabase
-    .from("case_number_aliases")
-    .select("case_id")
-    .ilike("case_number", caseNumber.trim())
-    .limit(1)
-    .maybeSingle();
-
-  if (aliasError) throw new Error(aliasError.message);
-  if (!alias) return null;
-
-  const { data: aliasedCase, error: caseError } = await supabase
-    .from("cases")
-    .select("*")
-    .eq("id", alias.case_id)
-    .maybeSingle();
-
-  if (caseError) throw new Error(caseError.message);
-  return aliasedCase ? caseRowToDto(aliasedCase) : null;
+  const row = data?.[0];
+  return row ? caseRowToDto(row) : null;
 }
 
 export async function fetchCaseByScanCodeFromSupabase(
@@ -969,10 +1124,9 @@ export function parseReportJson(json: Json) {
 
   const archiveGrowth = (d.archiveGrowth as Array<Record<string, Json>>) ?? [];
   const missingTrend = (d.missingTrend as Array<Record<string, Json>>) ?? [];
-  const movementFrequency = (d.movementFrequency as Array<Record<string, Json>>) ?? [];
   const divisionStats = (d.divisionStats as Array<Record<string, Json>>) ?? [];
-  const retrievalPerformance = (d.retrievalPerformance as Array<Record<string, Json>>) ?? [];
-  const scanningPerformance = (d.scanningPerformance as Array<Record<string, Json>>) ?? [];
+  const judgeStats = (d.judgeStats as Array<Record<string, Json>>) ?? [];
+  const ageBandStats = (d.ageBandStats as Array<Record<string, Json>>) ?? [];
   const courtLevelStats = (d.courtLevelStats as Array<Record<string, Json>>) ?? [];
   const caseTypeStats = (d.caseTypeStats as Array<Record<string, Json>>) ?? [];
   const caseCategoryStats = (d.caseCategoryStats as Array<Record<string, Json>>) ?? [];
@@ -984,25 +1138,17 @@ export function parseReportJson(json: Json) {
     missingTrend: missingTrend.length > 0
       ? missingTrend.map((t) => ({ month: String(t.month ?? ""), count: Number(t.count ?? 0) }))
       : [{ month: "N/A", count: 0 }],
-    movementFrequency: movementFrequency.map((f) => ({
-      week: String(f.week ?? ""),
-      checkouts: Number(f.checkouts ?? 0),
-      returns: Number(f.returns ?? 0),
-    })),
     divisionStats: divisionStats.length > 0
       ? divisionStats.map((s) => ({ name: String(s.name ?? ""), value: Number(s.value ?? 0) }))
       : [{ name: "High Court", value: 0 }],
-    retrievalPerformance: (
-      retrievalPerformance.length > 0
-        ? retrievalPerformance
-        : [{ division: "High Court", avgHours: 0 }]
-    ).map((p) => ({
-      division: String(p.division ?? ""),
-      avgHours: Number(p.avgHours ?? 0),
+    judgeStats: judgeStats.map((item) => ({
+      name: String(item.name ?? ""),
+      value: Number(item.value ?? 0),
     })),
-    scanningPerformance: scanningPerformance.length > 0
-      ? scanningPerformance.map((s) => ({ day: String(s.day ?? ""), scans: Number(s.scans ?? 0) }))
-      : [{ day: "Mon", scans: 0 }, { day: "Tue", scans: 0 }, { day: "Wed", scans: 0 }, { day: "Thu", scans: 0 }, { day: "Fri", scans: 0 }],
+    ageBandStats: ageBandStats.map((item) => ({
+      label: String(item.label ?? ""),
+      value: Number(item.value ?? 0),
+    })),
     courtLevelStats: courtLevelStats.map((item) => ({
       name: String(item.name ?? ""),
       value: Number(item.value ?? 0),

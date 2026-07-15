@@ -4,8 +4,8 @@ import { REPORT_DATA } from "@/data/seed/dashboard";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function asJson(value: unknown): any {
-  return JSON.parse(JSON.stringify(value));
+function asJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 // ─── caseTypeStats parsing ──────────────────────────────────────────────────
@@ -33,7 +33,6 @@ describe("parseReportJson — caseTypeStats", () => {
       name: "Legacy Type",
       fullLabel: "LEGACY - Legacy Type",
       courtLevel: "Magistrate Court",
-      family: "Civil",
       value: 4,
     });
     const result = parseReportJson(raw);
@@ -61,7 +60,7 @@ describe("parseReportJson — caseTypeStats", () => {
 
   it("handles missing caseTypeStats gracefully (empty array)", () => {
     const raw = asJson(REPORT_DATA);
-    raw.caseTypeStats = undefined;
+    delete (raw as Partial<typeof raw>).caseTypeStats;
     const result = parseReportJson(raw);
     expect(result.caseTypeStats).toEqual([]);
   });
@@ -95,7 +94,7 @@ describe("parseReportJson — caseCategoryStats", () => {
 
   it("handles missing caseCategoryStats gracefully (empty array)", () => {
     const raw = asJson(REPORT_DATA);
-    raw.caseCategoryStats = undefined;
+    delete (raw as Partial<typeof raw>).caseCategoryStats;
     const result = parseReportJson(raw);
     expect(result.caseCategoryStats).toEqual([]);
   });
@@ -186,7 +185,7 @@ describe("parseReportJson — edge cases", () => {
   it("handles null input fields gracefully", () => {
     const result = parseReportJson({
       someIrrelevantField: "test",
-    } as any);
+    } as Parameters<typeof parseReportJson>[0]);
     expect(result.caseTypeStats).toEqual([]);
     expect(result.caseCategoryStats).toEqual([]);
     expect(result.courtLevelStats).toEqual([]);
@@ -198,7 +197,7 @@ describe("parseReportJson — edge cases", () => {
     const raw = asJson(REPORT_DATA);
     raw.caseTypeStats = [
       { caseTypeId: null }, // missing code, name, etc.
-    ];
+    ] as typeof raw.caseTypeStats;
     const result = parseReportJson(raw);
     expect(result.caseTypeStats).toHaveLength(1);
     expect(result.caseTypeStats[0].code).toBe("");
@@ -207,7 +206,7 @@ describe("parseReportJson — edge cases", () => {
 
   it("converts string values to numbers in caseTypeStats", () => {
     const raw = asJson(REPORT_DATA);
-    raw.caseTypeStats[0].value = "42";
+    (raw.caseTypeStats[0] as { value: unknown }).value = "42";
     const result = parseReportJson(raw);
     expect(typeof result.caseTypeStats[0].value).toBe("number");
     expect(result.caseTypeStats[0].value).toBe(42);

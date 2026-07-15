@@ -2,12 +2,12 @@
 
 import { z } from "zod";
 import { actionError, actionOk } from "@/contracts/result";
+import { DEMO_PASSWORD } from "@/data/seed/users";
 import { getSessionProfile } from "@/lib/auth";
 import { isMockDataEnabled } from "@/lib/config";
+import { mockStore } from "@/lib/data/mock-store";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { mockStore } from "@/lib/data/mock-store";
-import { DEMO_PASSWORD } from "@/data/seed/users";
 import type { Json } from "@/types/database";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -58,25 +58,19 @@ export async function changePassword(formData: FormData) {
   const { currentPassword, newPassword } = parsed.data;
 
   if (isMockDataEnabled()) {
-    // In mock mode, verify current password against the demo password
     const user = mockStore.getUserById(profile.id);
     if (!user) {
       return actionError("NOT_FOUND", "User not found.");
     }
-
     if (currentPassword !== DEMO_PASSWORD) {
       return actionError("FORBIDDEN", "Current password is incorrect.");
     }
-
-    // In mock mode we don't actually change the password — simulate success
     await new Promise((resolve) => setTimeout(resolve, 300));
     return actionOk();
   }
 
-  // Real Supabase mode
   const supabase = await createClient();
 
-  // Verify current password by attempting to sign in
   const { error: signInError } = await supabase.auth.signInWithPassword({
     email: profile.email,
     password: currentPassword,

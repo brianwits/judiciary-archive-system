@@ -268,7 +268,7 @@ function CreateUserDialog({
         <DialogHeader>
           <DialogTitle>Create user</DialogTitle>
           <DialogDescription>
-            Provision a new demo account with an auth login and archive role.
+            Provision a new staff account with an auth login and archive role.
           </DialogDescription>
         </DialogHeader>
         <form className="space-y-4" onSubmit={onSubmit}>

@@ -53,6 +53,7 @@ export type Database = {
           id: string
           label: string
           level: Database["public"]["Enums"]["location_level"]
+          mapping_source: string
           occupied_count: number
           parent_id: string | null
           station_id: string | null
@@ -66,6 +67,7 @@ export type Database = {
           id?: string
           label: string
           level: Database["public"]["Enums"]["location_level"]
+          mapping_source?: string
           occupied_count?: number
           parent_id?: string | null
           station_id?: string | null
@@ -79,6 +81,7 @@ export type Database = {
           id?: string
           label?: string
           level?: Database["public"]["Enums"]["location_level"]
+          mapping_source?: string
           occupied_count?: number
           parent_id?: string | null
           station_id?: string | null
@@ -1403,6 +1406,7 @@ export type Database = {
           defendant: string
           filed_date: string
           judge: string
+          location_source: string
           matching_total: number
           plaintiff: string
           shelf_location: string
@@ -1448,6 +1452,46 @@ export type Database = {
           ocr_status: string
           title: string
           uploaded_by: string
+        }[]
+      }
+      lookup_case_by_identifier: {
+        Args: { identifier: string }
+        Returns: {
+          archive_code: string
+          case_category_code: string
+          case_family: string
+          case_number: string
+          case_number_normalized: string | null
+          case_number_raw: string | null
+          case_type: string
+          case_type_id: number
+          closed_date: string
+          court: string
+          court_division: string
+          court_station: string
+          created_at: string
+          created_by: string
+          defendant: string
+          description: string
+          filed_date: string
+          id: string
+          is_missing: boolean
+          judge: string
+          location_id: string
+          matched_by: string
+          notes: string
+          plaintiff: string
+          qr_barcode: string
+          shelf_location: string
+          source_case_id: string | null
+          source_record_hash: string | null
+          source_system: string | null
+          source_updated_at: string | null
+          tracking_number: string | null
+          status: Database["public"]["Enums"]["case_status"]
+          title: string
+          updated_at: string
+          year: number
         }[]
       }
       lookup_case_for_scan: {
@@ -1540,6 +1584,29 @@ export type Database = {
         }
       }
       search_cases_count: { Args: { search_query: string }; Returns: number }
+      search_file_movements: {
+        Args: {
+          result_limit?: number
+          result_offset?: number
+          search_query: string
+        }
+        Returns: {
+          actual_return_date: string | null
+          case_id: string
+          case_number: string
+          checked_out_by: string | null
+          created_at: string
+          defendant: string | null
+          destination_office: string
+          expected_return_date: string
+          id: string
+          plaintiff: string | null
+          purpose: string
+          status: Database["public"]["Enums"]["movement_status"]
+          title: string
+          updated_at: string
+        }[]
+      }
       user_can_edit_cases: { Args: never; Returns: boolean }
       user_can_manage_archive: { Args: never; Returns: boolean }
       user_can_manage_registry: { Args: never; Returns: boolean }

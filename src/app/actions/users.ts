@@ -17,6 +17,7 @@ import { revalidateUserMutation } from "@/lib/data/action-helpers";
 import { mockStore } from "@/lib/data/mock-store";
 import { normalizeCourtEmail } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { listProfilesWithAuthEmails } from "@/lib/supabase/admin-profiles";
 import { createClient } from "@/lib/supabase/server";
 import { recordAuditLog } from "@/lib/data/action-helpers";
 import type { CourtUserRole } from "@/types/database";
@@ -86,48 +87,7 @@ async function countManagedUsersMock() {
 
 const listProfilesCached = unstable_cache(
   async (): Promise<ProfileListItem[]> => {
-    const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("full_name", { ascending: true });
-
-    if (error) throw new Error(error.message);
-
-    const profiles = data ?? [];
-    if (profiles.length === 0) return [];
-
-    try {
-      const emailById = new Map<string, string | null>();
-      const perPage = 1000;
-
-      // Paginate: single-page listUsers capped at `perPage` would drop emails beyond the first page.
-      // Cap pages to guard against accidental infinite loops.
-      for (let page = 1; page <= 100; page += 1) {
-        const { data: authData, error: authError } = await supabase.auth.admin.listUsers({
-          page,
-          perPage,
-        });
-
-        if (authError) throw authError;
-
-        for (const user of authData.users) {
-          emailById.set(user.id, user.email ?? null);
-        }
-
-        if (authData.users.length < perPage) break;
-      }
-
-      return profiles.map((row) => ({
-        ...row,
-        email: emailById.get(row.id) ? normalizeEmailInput(emailById.get(row.id)) : null,
-      }));
-    } catch {
-      return profiles.map((row) => ({
-        ...row,
-        email: null,
-      }));
-    }
+    return listProfilesWithAuthEmails();
   },
   ["admin-profiles-list"],
   {

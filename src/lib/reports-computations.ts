@@ -9,10 +9,9 @@
 export type ReportData = {
   archiveGrowth: { month: string; count: number }[];
   missingTrend: { month: string; count: number }[];
-  movementFrequency: { week: string; checkouts: number; returns: number }[];
   divisionStats: { name: string; value: number }[];
-  retrievalPerformance: { division: string; avgHours: number }[];
-  scanningPerformance: { day: string; scans: number }[];
+  judgeStats: { name: string; value: number }[];
+  ageBandStats: { label: string; value: number }[];
   courtLevelStats: { name: string; value: number }[];
   caseTypeStats: {
     caseTypeId: number | null;
@@ -62,15 +61,20 @@ export function computeDerived(data: ReportData) {
   const previousArchive = data.archiveGrowth.at(-2)?.count ?? latestArchive.count;
   const latestMissing = getLastValue(data.missingTrend, { month: "N/A", count: 0 });
   const previousMissing = data.missingTrend.at(-2)?.count ?? latestMissing.count;
-  const totalCheckouts = data.movementFrequency.reduce((total, item) => total + item.checkouts, 0);
-  const totalReturns = data.movementFrequency.reduce((total, item) => total + item.returns, 0);
-  const totalScans = data.scanningPerformance.reduce((total, item) => total + item.scans, 0);
   const archiveGrowthRate = percentChange(latestArchive.count, previousArchive);
   const missingDelta = latestMissing.count - previousMissing;
-  const movementRecovery = totalCheckouts === 0 ? 100 : Math.round((totalReturns / totalCheckouts) * 100);
-  const peakScanDay = data.scanningPerformance.reduce(
-    (best, item) => (item.scans > best.scans ? item : best),
-    data.scanningPerformance[0] ?? { day: "N/A", scans: 0 },
+  const yearsCovered = data.archiveGrowth.length;
+  const topDivision = data.divisionStats[0] ?? { name: "N/A", value: 0 };
+  const topJudge = data.judgeStats[0] ?? { name: "Not recorded", value: 0 };
+  const topCaseCategory = data.caseCategoryStats[0] ?? {
+    categoryCode: "UNKNOWN",
+    categoryName: "Unknown Category",
+    courtLevel: "N/A",
+    value: 0,
+  };
+  const topAgeBand = data.ageBandStats.reduce(
+    (largest, band) => (band.value > largest.value ? band : largest),
+    { label: "N/A", value: 0 },
   );
 
   return {
@@ -78,12 +82,12 @@ export function computeDerived(data: ReportData) {
     previousArchive,
     latestMissing,
     previousMissing,
-    totalCheckouts,
-    totalReturns,
-    totalScans,
     archiveGrowthRate,
     missingDelta,
-    movementRecovery,
-    peakScanDay,
+    yearsCovered,
+    topDivision,
+    topJudge,
+    topCaseCategory,
+    topAgeBand,
   };
 }

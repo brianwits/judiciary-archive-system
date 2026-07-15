@@ -152,7 +152,6 @@ function upsertVercelEnv(name, value, environments = ["production", "preview", "
 
 function writeLocalEnv(serviceRoleKey) {
   const lines = [
-    "NEXT_PUBLIC_USE_MOCK_DATA=false",
     `NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}`,
     `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${PUBLISHABLE_KEY}`,
   ];
@@ -187,7 +186,6 @@ async function main() {
   }
 
   console.log("Setting Vercel environment variables...");
-  upsertVercelEnv("NEXT_PUBLIC_USE_MOCK_DATA", "false");
   upsertVercelEnv("NEXT_PUBLIC_SUPABASE_URL", SUPABASE_URL);
   upsertVercelEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", PUBLISHABLE_KEY);
 

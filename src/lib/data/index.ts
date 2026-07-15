@@ -13,12 +13,14 @@ import {
   fetchCasesFromSupabase,
   fetchCasesPageFromSupabase,
   fetchArchiveStoredCasesFromSupabase,
+  fetchArchiveStoredCasesForRoomFromSupabase,
   fetchDashboardFromSupabase,
   fetchDocumentsForCasesFromSupabase,
   fetchDocumentCountsForCasesFromSupabase,
   fetchDocumentsFromSupabase,
   fetchLocationByIdFromSupabase,
   fetchLocationChildrenFromSupabase,
+  fetchMovementSummaryFromSupabase,
   fetchMovementsByCaseFromSupabase,
   fetchMovementsFromSupabase,
   fetchOpenMovementsFromSupabase,
@@ -40,17 +42,16 @@ import type { ArchiveStoredCase, RoomSummary } from "@/types/archive";
 import type { CaseFile, CaseFilters } from "@/types/case";
 import type { DashboardData, RegistryRequest } from "@/types/dashboard";
 import type { CaseDocument, DocumentCategory } from "@/types/document";
-import type { FileMovement, MovementStatus } from "@/types/movement";
-import type { OpenMovementOption } from "@/types/movement";
+import type { FileMovement, MovementFilters, MovementStatus } from "@/types/movement";
+import type { MovementSummary, OpenMovementOption } from "@/types/movement";
 import type { UserProfile } from "@/types/user";
 import type { UserRole } from "@/types/roles";
-import { REPORT_DATA } from "@/data/seed/dashboard";
 import type { ScanMatchType } from "@/contracts/scanning";
 import type { ReportFilters } from "@/lib/reports-computations";
 
 const getCachedDashboardData = unstable_cache(
   async () => fetchDashboardFromSupabase(createAdminClient()),
-  ["dashboard-data"],
+  ["dashboard-data-v2"],
   {
     revalidate: 120,
     tags: [
@@ -73,7 +74,8 @@ const getCachedRoomSummaries = unstable_cache(
 );
 
 const getCachedRecentMovements = unstable_cache(
-  async (limit: number) => fetchRecentMovementsFromSupabase(limit, createAdminClient()),
+  async (limit: number, filters?: MovementFilters) =>
+    fetchRecentMovementsFromSupabase(limit, filters, createAdminClient()),
   ["recent-movements"],
   {
     revalidate: 60,
@@ -82,8 +84,8 @@ const getCachedRecentMovements = unstable_cache(
 );
 
 const getCachedMovements = unstable_cache(
-  async (page: number, pageSize: number) =>
-    fetchMovementsFromSupabase({ page, pageSize }, createAdminClient()),
+  async (page: number, pageSize: number, filters?: MovementFilters) =>
+    fetchMovementsFromSupabase({ page, pageSize }, filters, createAdminClient()),
   ["movements-page"],
   {
     revalidate: 60,
@@ -92,7 +94,7 @@ const getCachedMovements = unstable_cache(
 );
 
 const getCachedOpenMovements = unstable_cache(
-  async () => fetchOpenMovementsFromSupabase(createAdminClient()),
+  async (filters?: MovementFilters) => fetchOpenMovementsFromSupabase(filters, createAdminClient()),
   ["open-movements"],
   {
     revalidate: 60,
@@ -100,8 +102,17 @@ const getCachedOpenMovements = unstable_cache(
   },
 );
 
+const getCachedMovementSummary = unstable_cache(
+  async (filters?: MovementFilters) => fetchMovementSummaryFromSupabase(filters, createAdminClient()),
+  ["movement-summary"],
+  {
+    revalidate: 60,
+    tags: [CACHE_TAGS.movements, CACHE_TAGS.cases],
+  },
+);
+
 const getCachedUsers = unstable_cache(
-  async () => fetchUsersFromSupabase(createAdminClient()),
+  async () => fetchUsersFromSupabase(),
   ["users-list"],
   {
     revalidate: 300,
@@ -111,10 +122,10 @@ const getCachedUsers = unstable_cache(
 
 const getCachedReportData = unstable_cache(
   async (filters: ReportFilters) => fetchReportDataFromSupabase(filters, createAdminClient()),
-  ["reports-data"],
+  ["reports-data-v2"],
   {
     revalidate: 300,
-    tags: [CACHE_TAGS.reports, CACHE_TAGS.cases, CACHE_TAGS.documents, CACHE_TAGS.movements],
+    tags: [CACHE_TAGS.reports, CACHE_TAGS.cases],
   },
 );
 
@@ -155,7 +166,7 @@ const getCachedNavSnapshot = unstable_cache(
       alerts: dashboard.alerts.slice(0, 5),
     };
   },
-  ["nav-snapshot"],
+  ["nav-snapshot-v2"],
   {
     revalidate: 60,
     tags: [CACHE_TAGS.dashboard, CACHE_TAGS.cases],
@@ -166,6 +177,16 @@ const getCachedArchiveStoredCases = unstable_cache(
   async (limit: number, offset: number) =>
     fetchArchiveStoredCasesFromSupabase({ limit, offset }, createAdminClient()),
   ["archive-stored-cases"],
+  {
+    revalidate: 120,
+    tags: [CACHE_TAGS.archive, CACHE_TAGS.cases],
+  },
+);
+
+const getCachedArchiveStoredCasesForRoom = unstable_cache(
+  async (roomId: string, limit: number, offset: number) =>
+    fetchArchiveStoredCasesForRoomFromSupabase(roomId, { limit, offset }, createAdminClient()),
+  ["archive-stored-cases-room"],
   {
     revalidate: 120,
     tags: [CACHE_TAGS.archive, CACHE_TAGS.cases],
@@ -295,21 +316,52 @@ export async function getArchiveStoredCases(opts?: {
   return getCachedArchiveStoredCases(limit, offset);
 }
 
-export async function getMovements(listQuery?: Partial<ListQuery>): Promise<FileMovement[]> {
-  if (isMockDataEnabled()) return mockStore.getMovements();
+export async function getArchiveStoredCasesForRoom(
+  roomId: string,
+  opts?: { limit?: number; offset?: number },
+): Promise<{ items: ArchiveStoredCase[]; total: number }> {
+  if (isMockDataEnabled()) {
+    const room = mockStore.getLocationById(roomId);
+    const prefix = room?.code;
+    const all = mockStore
+      .getArchiveStoredCases()
+      .filter((item) => (prefix ? item.storagePath?.startsWith(prefix) : false) ?? false);
+    const limit = Math.min(Math.max(opts?.limit ?? all.length, 1), 500);
+    const offset = Math.max(opts?.offset ?? 0, 0);
+    return {
+      items: all.slice(offset, offset + limit),
+      total: all.length,
+    };
+  }
+
+  const limit = Math.min(Math.max(opts?.limit ?? 60, 1), 500);
+  const offset = Math.max(opts?.offset ?? 0, 0);
+  return getCachedArchiveStoredCasesForRoom(roomId, limit, offset);
+}
+
+export async function getMovements(
+  listQuery?: Partial<ListQuery>,
+  filters?: MovementFilters,
+): Promise<FileMovement[]> {
+  if (isMockDataEnabled()) return mockStore.getMovements(filters);
   const page = listQuery?.page ?? DEFAULT_PAGE;
   const pageSize = listQuery?.pageSize ?? DEFAULT_PAGE_SIZE;
-  return getCachedMovements(page, pageSize);
+  return getCachedMovements(page, pageSize, filters);
 }
 
-export async function getOpenMovements(): Promise<OpenMovementOption[]> {
-  if (isMockDataEnabled()) return mockStore.getOpenMovements();
-  return getCachedOpenMovements();
+export async function getOpenMovements(filters?: MovementFilters): Promise<OpenMovementOption[]> {
+  if (isMockDataEnabled()) return mockStore.getOpenMovements(filters);
+  return getCachedOpenMovements(filters);
 }
 
-export async function getRecentMovements(limit = 5): Promise<FileMovement[]> {
-  if (isMockDataEnabled()) return mockStore.getRecentMovements(limit);
-  return getCachedRecentMovements(limit);
+export async function getRecentMovements(limit = 5, filters?: MovementFilters): Promise<FileMovement[]> {
+  if (isMockDataEnabled()) return mockStore.getRecentMovements(limit, filters);
+  return getCachedRecentMovements(limit, filters);
+}
+
+export async function getMovementSummary(filters?: MovementFilters): Promise<MovementSummary> {
+  if (isMockDataEnabled()) return mockStore.getMovementSummary(filters);
+  return getCachedMovementSummary(filters);
 }
 
 export async function getMovementsByCase(caseId: string): Promise<FileMovement[]> {
@@ -412,7 +464,7 @@ export async function getRegistryRequests(): Promise<RegistryRequest[]> {
 }
 
 export async function getReportData(filters: ReportFilters = {}) {
-  if (isMockDataEnabled()) return REPORT_DATA;
+  if (isMockDataEnabled()) return mockStore.getReportData(filters);
   return getCachedReportData(filters);
 }
 
@@ -448,6 +500,6 @@ export async function searchAll(query: string) {
   return { cases, movements };
 }
 
-export { mockStore, REPORT_DATA };
+export { mockStore };
 
 export type { CaseFile, CaseFilters, FileMovement, MovementStatus, CaseDocument, DocumentCategory, UserRole };
