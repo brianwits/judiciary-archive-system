@@ -64,6 +64,16 @@ describe("movement filtering and sorting", () => {
     expect(movementMatchesFilters(item, { status: "returned" })).toBe(false);
   });
 
+  it("keeps date-overdue open movements in the overdue view", () => {
+    const item = decorateMovement({
+      ...movement({ status: "checked_out", expectedReturnDate: "2020-01-01" }),
+      caseType: "Civil",
+    });
+
+    expect(item.status).toBe("checked_out");
+    expect(movementMatchesFilters(item, { status: "overdue" })).toBe(true);
+  });
+
   it("sorts overdue items ahead of regular open movements", () => {
     const sorted = sortMovementsOperationally([
       decorateMovement({ ...movement({ id: "a", expectedReturnDate: "2099-01-10" }), caseType: "Civil" }),
@@ -84,6 +94,19 @@ describe("movement filtering and sorting", () => {
     const page = paginateFilteredMovements(movements, { family: "Civil" }, 0, 1);
 
     expect(page.map((item) => item.id)).toEqual(["b", "d"]);
+  });
+
+  it("filters derived overdue state before paginating", () => {
+    const movements = [
+      decorateMovement({ ...movement({ id: "future-a", expectedReturnDate: "2099-01-10" }), caseType: "Civil" }),
+      decorateMovement({ ...movement({ id: "overdue-a", expectedReturnDate: "2020-01-01" }), caseType: "Civil" }),
+      decorateMovement({ ...movement({ id: "future-b", expectedReturnDate: "2099-02-10" }), caseType: "Civil" }),
+      decorateMovement({ ...movement({ id: "overdue-b", expectedReturnDate: "2020-02-01" }), caseType: "Civil" }),
+    ];
+
+    const page = paginateFilteredMovements(movements, { status: "overdue" }, 0, 1);
+
+    expect(page.map((item) => item.id)).toEqual(["overdue-a", "overdue-b"]);
   });
 });
 

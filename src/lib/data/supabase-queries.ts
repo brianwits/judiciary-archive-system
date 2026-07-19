@@ -23,6 +23,7 @@ import {
   decorateMovement,
   movementFamilyDbValues,
   movementMatchesFilters,
+  paginateFilteredMovements,
   sortMovementsOperationally,
   sortRecentMovementPriority,
   summarizeMovements,
@@ -190,7 +191,7 @@ function applyMovementQueryFilters<T extends {
   if (!filters) return query;
 
   if (filters.status === "overdue") {
-    query = query.eq("status", "overdue");
+    query = query.in("status", ["checked_out", "in_transit", "overdue"]);
   } else if (filters.status === "returned") {
     query = query.eq("status", "returned");
   } else if (filters.status === "open") {
@@ -330,7 +331,8 @@ export async function fetchMovementsFromSupabase(
     .order("created_at", { ascending: false });
 
   query = applyMovementQueryFilters(query, filters);
-  const { data, error } = await query.range(from, to);
+  const paginateAfterDecoration = filters?.status === "overdue";
+  const { data, error } = await (paginateAfterDecoration ? query : query.range(from, to));
 
   if (error) throw new Error(error.message);
 
@@ -345,6 +347,10 @@ export async function fetchMovementsFromSupabase(
           : null,
       }),
     );
+
+  if (paginateAfterDecoration) {
+    return paginateFilteredMovements(movements, filters, from, to);
+  }
 
   return movements.filter((movement) => movementMatchesFilters(movement, filters));
 }

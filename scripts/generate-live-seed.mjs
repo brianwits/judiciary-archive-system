@@ -520,11 +520,13 @@ function renderSeedSql(cases, counts) {
 
   body.push(
     "",
+    "SELECT public.refresh_generated_archive_storage_mapping();",
+    "",
     "INSERT INTO public.notices (title, body, author_id, priority, created_at)",
     "VALUES",
     "  ('CTS Dataset Loaded', 'Kabarnet closed-case records are live in the archive dashboard and reports workspace.', NULL, 'high', '2026-07-13T07:00:00Z'),",
     "  ('Kabarnet Coverage Scope', 'The current dataset covers Kabarnet Magistrate Court and Kabarnet High Court, with validated zero-result ELC coverage.', NULL, 'normal', '2026-07-13T06:30:00Z'),",
-    "  ('Archive Metadata Follow-up', 'Physical shelf locations, movement history, and scanning activity are not yet part of the imported CTS closed-case dataset.', NULL, 'normal', '2026-07-13T06:00:00Z');",
+    "  ('Archive Storage Mapping Ready', 'System-generated archive rooms, shelves, and boxes have been assigned to the imported CTS closed-case dataset for operational planning.', NULL, 'normal', '2026-07-13T06:00:00Z');",
     "",
     "INSERT INTO public.memos (title, reference, author_id, created_at)",
     "VALUES",
@@ -534,7 +536,7 @@ function renderSeedSql(cases, counts) {
     "INSERT INTO public.broadcasts (title, message, author_id, created_at)",
     "VALUES",
     "  ('Scheduled data verification', 'Registry and ICT teams should validate sampled CTS records against physical file registers this week.', NULL, '2026-07-13T05:00:00Z'),",
-    "  ('Archive room metadata capture', 'Location assignments for imported CTS cases will be captured in a later inventory phase.', NULL, '2026-07-13T04:45:00Z');",
+    "  ('Archive room metadata capture', 'Location assignments for imported CTS cases are now generated for planning and should be verified against the physical registry progressively.', NULL, '2026-07-13T04:45:00Z');",
     "",
     "ANALYZE public.cases;",
     "",
