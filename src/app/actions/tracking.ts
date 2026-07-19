@@ -15,6 +15,47 @@ import { mockStore } from "@/lib/data/mock-store";
 import { createClient } from "@/lib/supabase/server";
 import { notifyFileMovement } from "@/lib/webhooks/n8n";
 import { hasPermission } from "@/types/roles";
+import { isMovementOpen } from "@/lib/movement-utils";
+
+type CheckoutCasePreview = {
+  id: string;
+  caseNumber: string;
+  title: string;
+  caseFamily: string;
+  archiveCode: string;
+  shelfLocation: string | null;
+  courtDivision: string;
+};
+
+export async function lookupCheckoutCase(caseNumber: string) {
+  const profile = await getSessionProfile();
+  if (!profile || !hasPermission(profile.role, "file_movement")) {
+    return actionError("FORBIDDEN", "You do not have permission to view file movement details.");
+  }
+
+  const normalized = caseNumber.trim();
+  if (!normalized) {
+    return actionError("VALIDATION_ERROR", "Enter a case number to preview archive context.");
+  }
+
+  const caseFile = isMockDataEnabled()
+    ? mockStore.getCaseByNumber(normalized)
+    : await getCaseByNumber(normalized);
+
+  if (!caseFile) {
+    return actionError("NOT_FOUND", `Case ${normalized} not found.`);
+  }
+
+  return actionOk<CheckoutCasePreview>({
+    id: caseFile.id,
+    caseNumber: caseFile.caseNumber,
+    title: caseFile.defendant ? `${caseFile.plaintiff} v. ${caseFile.defendant}` : caseFile.plaintiff,
+    caseFamily: caseFile.caseFamily,
+    archiveCode: caseFile.archiveCode,
+    shelfLocation: caseFile.shelfLocation,
+    courtDivision: caseFile.courtDivision,
+  });
+}
 
 export async function checkoutFile(data: CheckoutInput) {
   const profile = await getSessionProfile();
@@ -41,10 +82,21 @@ export async function checkoutFile(data: CheckoutInput) {
   }
 
   if (isMockDataEnabled()) {
+    const existingOpenMovement = mockStore
+      .getMovements()
+      .find((movement) => movement.caseId === caseFile.id && isMovementOpen(movement.status));
+    if (existingOpenMovement) {
+      return actionError("CONFLICT", `${caseFile.caseNumber} already has an open movement.`);
+    }
+
     const movement = mockStore.addMovement({
       caseId: caseFile.id,
       caseNumber: caseFile.caseNumber,
       caseTitle: `${caseFile.plaintiff} v. ${caseFile.defendant}`,
+      caseFamily: caseFile.caseFamily,
+      courtDivision: caseFile.courtDivision,
+      archiveCode: caseFile.archiveCode,
+      shelfLocation: caseFile.shelfLocation,
       checkedOutBy: profile.id,
       checkedOutByName: profile.fullName,
       destinationOffice: input.destinationOffice,
@@ -52,6 +104,8 @@ export async function checkoutFile(data: CheckoutInput) {
       expectedReturnDate: input.expectedReturnDate,
       actualReturnDate: null,
       status: "checked_out",
+      isOpen: true,
+      isOverdue: false,
     });
 
     await recordAuditLog({
@@ -65,6 +119,19 @@ export async function checkoutFile(data: CheckoutInput) {
     });
   } else {
     const supabase = await createClient();
+    const { data: existingOpen, error: existingOpenError } = await supabase
+      .from("file_movements")
+      .select("id")
+      .eq("case_id", caseFile.id)
+      .in("status", ["checked_out", "in_transit", "overdue"])
+      .limit(1)
+      .maybeSingle();
+
+    if (existingOpenError) return actionError("BAD_REQUEST", existingOpenError.message);
+    if (existingOpen) {
+      return actionError("CONFLICT", `${caseFile.caseNumber} already has an open movement.`);
+    }
+
     const { data: movement, error } = await supabase
       .from("file_movements")
       .insert({
@@ -78,7 +145,12 @@ export async function checkoutFile(data: CheckoutInput) {
       .select("id")
       .single();
 
-    if (error) return actionError("BAD_REQUEST", error.message);
+    if (error) {
+      if (error.code === "23505") {
+        return actionError("CONFLICT", `${caseFile.caseNumber} already has an open movement.`);
+      }
+      return actionError("BAD_REQUEST", error.message);
+    }
 
     await recordAuditLog({
       userId: profile.id,

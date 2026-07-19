@@ -16,6 +16,13 @@ import {
 import { cn } from "@/lib/utils";
 import type { CaseFile } from "@/types/case";
 
+function formatCourtLabel(caseFile: CaseFile) {
+  if (caseFile.caseCourtLevel === "Environment and Land Court") return "ELC";
+  if (caseFile.caseCourtLevel === "High Court") return "High Court";
+  if (caseFile.caseCourtLevel === "Magistrate Court") return "Magistrate Court";
+  return caseFile.caseCourtLevel;
+}
+
 type CasesDataTableProps = {
   cases: CaseFile[];
   docCountByCaseId: Record<string, number>;
@@ -63,6 +70,7 @@ export function CasesDataTable({
               />
             </TableHead>
             <TableHead>Case number</TableHead>
+            <TableHead>Court</TableHead>
             <TableHead>Case type</TableHead>
             <TableHead>Parties</TableHead>
             <TableHead className="text-center">Docs</TableHead>
@@ -92,6 +100,14 @@ export function CasesDataTable({
                   >
                     {caseFile.caseNumber}
                   </Link>
+                </TableCell>
+                <TableCell>
+                  <div className="max-w-[170px] text-sm">
+                    <p className="font-medium">{formatCourtLabel(caseFile)}</p>
+                    {caseFile.courtDivision !== caseFile.caseCourtLevel ? (
+                      <p className="truncate text-muted-foreground">{caseFile.courtDivision}</p>
+                    ) : null}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm">{caseFile.caseTypeFullLabel}</span>

@@ -4,7 +4,6 @@ import { Suspense, startTransition, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "@/app/actions/auth";
 import { DEMO_PASSWORD, MOCK_USERS } from "@/data/seed/users";
-import { isMockDataEnabled } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/shared/form-error";
 import {
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isMockDataEnabled } from "@/lib/config";
 
 const USE_MOCK = isMockDataEnabled();
 
@@ -25,7 +25,8 @@ const README_FIRST_ADMIN = 'README.md — section "First admin user"';
 function MissingProfileBanner() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
-  if (USE_MOCK || (error !== "missing_profile" && error !== "inactive_account")) return null;
+  if (USE_MOCK) return null;
+  if (error !== "missing_profile" && error !== "inactive_account") return null;
 
   if (error === "inactive_account") {
     return (
@@ -88,13 +89,12 @@ export default function LoginForm() {
     }
   }
 
-  function handleDemoUser(value: string | null) {
+  function handleMockUser(value: string | null) {
     if (!value) return;
-    const user = MOCK_USERS.find((u) => u.id === value);
-    if (user) {
-      setEmail(user.email);
-      setPassword(DEMO_PASSWORD);
-    }
+    const user = MOCK_USERS.find((candidate) => candidate.id === value);
+    if (!user) return;
+    setEmail(user.email);
+    setPassword(DEMO_PASSWORD);
   }
 
   return (
@@ -103,7 +103,7 @@ export default function LoginForm() {
         <CardTitle>Sign in</CardTitle>
         <CardDescription>
           {USE_MOCK
-            ? "Demo mode — select a user or enter credentials (password: demo1234)"
+            ? "CTS mock mode — sign in with a seeded staff account (password: demo1234)."
             : "Sign in with your court staff credentials."}
         </CardDescription>
       </CardHeader>
@@ -115,26 +115,23 @@ export default function LoginForm() {
         </Suspense>
 
         <form action={handleSubmit} className="space-y-4">
-          {USE_MOCK && (
+          {USE_MOCK ? (
             <div className="space-y-2">
-              <Label htmlFor="demo-user-select">Demo user</Label>
+              <Label htmlFor="mock-user-select">Mock user</Label>
               <select
-                id="demo-user-select"
-                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                defaultValue=""
-                onChange={(e) => handleDemoUser(e.target.value)}
+                id="mock-user-select"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                defaultValue={MOCK_USERS[0]?.id ?? ""}
+                onChange={(event) => handleMockUser(event.target.value)}
               >
-                <option value="" disabled>
-                  Quick select demo account
-                </option>
-                {MOCK_USERS.map((user) => (
+                {MOCK_USERS.filter((user) => user.isActive).map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.fullName} ({user.role})
                   </option>
                 ))}
               </select>
             </div>
-          )}
+          ) : null}
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -165,7 +162,7 @@ export default function LoginForm() {
           <FormError message={error} />
 
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "Signing in\u2026" : "Sign in"}
+            {pending ? "Signing in..." : "Sign in"}
           </Button>
         </form>
       </CardContent>

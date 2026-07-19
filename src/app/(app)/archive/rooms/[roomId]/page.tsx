@@ -18,7 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getLocationById, getLocationChildren } from "@/lib/data";
+import { normalizeArchiveCourtLevel } from "@/lib/archive-family";
+import { getArchiveStoredCasesForRoom, getLocationById, getLocationChildren } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
 type RoomDetailPageProps = {
@@ -33,7 +34,10 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
     notFound();
   }
 
-  const children = await getLocationChildren(roomId);
+  const [children, storedCases] = await Promise.all([
+    getLocationChildren(roomId),
+    getArchiveStoredCasesForRoom(roomId, { limit: 80 }),
+  ]);
   const occupancyPercent = Math.round((room.occupiedCount / room.capacity) * 100);
 
   return (
@@ -49,7 +53,14 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
         title={`${room.code}: ${room.label}`}
         subtitle={room.category ?? "Archive room"}
         actions={
-          <Badge variant="outline">{occupancyPercent}% occupied</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {room.mappingSource === "generated" ? (
+              <Badge variant="secondary">Generated layout</Badge>
+            ) : (
+              <Badge variant="outline">Verified layout</Badge>
+            )}
+            <Badge variant="outline">{occupancyPercent}% occupied</Badge>
+          </div>
         }
       />
 
@@ -107,6 +118,51 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
                       </TableRow>
                     );
                   })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Mapped files</CardTitle>
+          <CardDescription>
+            {storedCases.total.toLocaleString()} case files currently assigned to this room hierarchy
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {storedCases.items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No case files are mapped to this room yet.</p>
+          ) : (
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Case Number</TableHead>
+                    <TableHead>Court</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Archive Path</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {storedCases.items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">
+                        <Link href={`/cases/${item.id}`} className="hover:underline">
+                          {item.caseNumber}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{normalizeArchiveCourtLevel(item)}</TableCell>
+                      <TableCell>{item.caseTypeFullLabel}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {item.storagePath ?? item.shelfLocation ?? "—"}
+                      </TableCell>
+                      <TableCell className="capitalize">{item.status.replace("_", " ")}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

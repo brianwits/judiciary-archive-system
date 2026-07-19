@@ -38,6 +38,48 @@ export type ArchiveStoredCase = {
   filedDate: string | null;
   /** Root-to-leaf location codes (from hierarchy of `archive_locations`). */
   storagePath: string | null;
+  /** Whether the physical archive path is system-generated or registry-verified. */
+  locationSource: "generated" | "verified";
+};
+
+export type ArchiveFamilyGroup = {
+  key: string;
+  label:
+    | "Civil"
+    | "Criminal"
+    | "Commercial"
+    | "Constitutional"
+    | "Probate"
+    | "Succession"
+    | "Traffic"
+    | "ELC"
+    | "Other";
+  count: number;
+  missingCount: number;
+  storagePaths: string[];
+  cases: ArchiveStoredCase[];
+};
+
+export type ArchiveCourtLevel = "High Court" | "Magistrate Court" | "ELC" | "Other";
+
+export type ArchiveTypeGroup = {
+  key: string;
+  label: string;
+  code: string | null;
+  courtLevel: ArchiveCourtLevel;
+  count: number;
+  missingCount: number;
+  storagePaths: string[];
+  cases: ArchiveStoredCase[];
+};
+
+export type ArchiveCourtSection = {
+  key: string;
+  label: ArchiveCourtLevel;
+  count: number;
+  missingCount: number;
+  storagePaths: string[];
+  groups: ArchiveTypeGroup[];
 };
 
 export type ArchiveLocation = {
@@ -51,6 +93,7 @@ export type ArchiveLocation = {
   category?: string;
   stationId?: string | null;
   active?: boolean;
+  mappingSource: "generated" | "verified";
 };
 
 export type RoomSummary = {
@@ -62,4 +105,5 @@ export type RoomSummary = {
   occupiedCount: number;
   occupancyPercent: number;
   status: "available" | "near_full" | "full";
+  mappingSource: "generated" | "verified";
 };

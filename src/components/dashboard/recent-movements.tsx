@@ -78,6 +78,7 @@ export function RecentMovements({ movements }: RecentMovementsProps) {
                         {movement.caseNumber}
                       </Link>
                       <p className="text-xs text-muted-foreground">{movement.caseTitle}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{movement.caseFamily}</p>
                     </TableCell>
                     <TableCell className="text-sm">{movement.destinationOffice}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

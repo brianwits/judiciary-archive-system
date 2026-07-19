@@ -75,7 +75,7 @@ export default async function SettingsPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Data mode</span>
               <Badge variant="secondary">
-                {isMockDataEnabled() ? "Mock / demo" : "Supabase"}
+                {isMockDataEnabled() ? "CTS mock dataset" : "Supabase"}
               </Badge>
             </div>
             <Separator />

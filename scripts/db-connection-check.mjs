@@ -30,19 +30,11 @@ const root = process.cwd();
 loadEnvFile(root, ".env.local");
 loadEnvFile(root, ".env");
 
-const mock = process.env.NEXT_PUBLIC_USE_MOCK_DATA;
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const pub = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const sr = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 console.log("=== Judiciary Archive — DB connection check ===\n");
-console.log("NEXT_PUBLIC_USE_MOCK_DATA:", JSON.stringify(mock ?? "(unset)"));
-
-if (mock !== "false") {
-  console.log("\nSkipped remote Supabase probes (mock mode or USE_MOCK not explicitly false).");
-  console.log('Set NEXT_PUBLIC_USE_MOCK_DATA=false in .env.local to validate hosted/local API keys.');
-  process.exit(0);
-}
 
 if (!url || !pub) {
   console.error("\nFAIL: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are required.");

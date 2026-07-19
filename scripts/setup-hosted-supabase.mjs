@@ -148,7 +148,7 @@ async function main() {
   console.log("Configuring Supabase Auth redirect URLs for Vercel...");
   await configureAuthUrls(accessToken);
 
-  console.log("Applying demo SQL (seed + storage policies)...");
+  console.log("Applying live seed SQL and storage policies...");
   run("npx", ["supabase", "db", "query", "-f", "supabase/seed.sql", "--linked"]);
   run("npx", [
     "supabase",

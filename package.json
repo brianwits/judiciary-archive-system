@@ -1,6 +1,6 @@
 {
   "name": "judiciary-archive",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,6 +14,7 @@
     "db:migrate": "npx supabase migration up",
     "db:push": "npx supabase db push",
     "db:types": "npx supabase gen types typescript --local > src/types/database.ts",
+    "db:generate-live-seed": "node scripts/generate-live-seed.mjs",
     "db:setup": "npx supabase db push && echo 'Run supabase/seed.sql in SQL Editor, create auth user, then supabase/scripts/promote-admin.sql'",
     "db:setup-hosted": "node scripts/setup-hosted-supabase.mjs",
     "db:seed-users": "node scripts/seed-users.mjs",

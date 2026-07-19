@@ -1,25 +1,72 @@
 import type { ArchiveLocation, RoomSummary } from "@/types/archive";
 
-export const SEED_LOCATIONS: ArchiveLocation[] = [
-  { id: "room-r1", parentId: null, level: "room", code: "R1", label: "Room A - Civil Cases", capacity: 500, occupiedCount: 423, category: "Civil Cases" },
-  { id: "room-r2", parentId: null, level: "room", code: "R2", label: "Room B - Criminal Cases", capacity: 400, occupiedCount: 248, category: "Criminal Cases" },
-  { id: "room-r3", parentId: null, level: "room", code: "R3", label: "Room C - Succession Cases", capacity: 300, occupiedCount: 135, category: "Succession Cases" },
-  { id: "room-r4", parentId: null, level: "room", code: "R4", label: "Room D - Commercial Cases", capacity: 350, occupiedCount: 319, category: "Commercial Cases" },
-  { id: "room-r5", parentId: null, level: "room", code: "R5", label: "Room E - Constitutional", capacity: 200, occupiedCount: 156, category: "Constitutional" },
-  { id: "room-r6", parentId: null, level: "room", code: "R6", label: "Room F - Probate & Misc", capacity: 450, occupiedCount: 149, category: "Probate & Misc" },
-  { id: "loc-r1-b1", parentId: "room-r1", level: "bay", code: "B1", label: "Bay 1", capacity: 125, occupiedCount: 105 },
-  { id: "loc-r1-b2", parentId: "room-r1", level: "bay", code: "B2", label: "Bay 2", capacity: 125, occupiedCount: 108 },
-  { id: "loc-r1-b1-r1", parentId: "loc-r1-b1", level: "rack", code: "R1", label: "Rack 1", capacity: 42, occupiedCount: 35 },
-  { id: "loc-r1-b2-r3", parentId: "loc-r1-b2", level: "rack", code: "R3", label: "Rack 3", capacity: 42, occupiedCount: 38 },
-  { id: "loc-r1-b2-r3-s4", parentId: "loc-r1-b2-r3", level: "shelf", code: "S4", label: "Shelf 4", capacity: 14, occupiedCount: 12 },
-  { id: "loc-r2-b1-r2-s3", parentId: "loc-r1-b1-r1", level: "shelf", code: "S3", label: "Shelf 3", capacity: 14, occupiedCount: 10 },
-  { id: "loc-r3-b2-r1-s1", parentId: "loc-r1-b2-r3", level: "shelf", code: "S1", label: "Shelf 1", capacity: 14, occupiedCount: 8 },
-  { id: "loc-r4-b1-r2-s5", parentId: "loc-r1-b1-r1", level: "shelf", code: "S5", label: "Shelf 5", capacity: 14, occupiedCount: 13 },
-  { id: "loc-r5-b2-r3-s2", parentId: "loc-r1-b2-r3", level: "shelf", code: "S2", label: "Shelf 2", capacity: 14, occupiedCount: 11 },
-  { id: "loc-r6-b1-r1-s3", parentId: "loc-r1-b1-r1", level: "shelf", code: "S3", label: "Shelf 3", capacity: 14, occupiedCount: 6 },
-  { id: "box-r1-b1-r1-s1-b1", parentId: "loc-r1-b2-r3-s4", level: "box", code: "BX1", label: "Box 1", capacity: 50, occupiedCount: 42 },
-  { id: "box-r1-b1-r1-s1-b2", parentId: "loc-r1-b2-r3-s4", level: "box", code: "BX2", label: "Box 2", capacity: 50, occupiedCount: 38 },
-];
+const ROOM_DEFINITIONS = [
+  { code: "R1", label: "Room A - Civil Cases", category: "Civil Cases" },
+  { code: "R2", label: "Room B - Criminal Cases", category: "Criminal Cases" },
+  { code: "R3", label: "Room C - Succession Cases", category: "Succession Cases" },
+  { code: "R4", label: "Room D - Commercial Cases", category: "Commercial Cases" },
+  { code: "R5", label: "Room E - Constitutional Cases", category: "Constitutional Cases" },
+  { code: "R6", label: "Room F - Probate Cases", category: "Probate Cases" },
+  { code: "R7", label: "Room G - ELC Cases", category: "ELC Cases" },
+  { code: "R8", label: "Room H - Traffic Cases", category: "Traffic Cases" },
+  { code: "R9", label: "Room I - Other Cases", category: "Other Cases" },
+] as const;
+
+function createLocation(
+  id: string,
+  parentId: string | null,
+  level: ArchiveLocation["level"],
+  code: string,
+  label: string,
+  capacity: number,
+  category?: string,
+): ArchiveLocation {
+  return {
+    id,
+    parentId,
+    level,
+    code,
+    label,
+    capacity,
+    occupiedCount: 0,
+    category,
+    active: true,
+    mappingSource: "generated",
+  };
+}
+
+export const SEED_LOCATIONS: ArchiveLocation[] = ROOM_DEFINITIONS.flatMap((room) => {
+  const roomId = `room-${room.code.toLowerCase()}`;
+  const locations: ArchiveLocation[] = [
+    createLocation(roomId, null, "room", room.code, room.label, 6000, room.category),
+  ];
+
+  for (let bayIndex = 1; bayIndex <= 2; bayIndex += 1) {
+    const bayId = `${roomId}-b${bayIndex}`;
+    locations.push(createLocation(bayId, roomId, "bay", `B${bayIndex}`, `Bay ${bayIndex}`, 3000, room.category));
+
+    for (let rackIndex = 1; rackIndex <= 3; rackIndex += 1) {
+      const rackId = `${bayId}-rk${rackIndex}`;
+      locations.push(createLocation(rackId, bayId, "rack", `RK${rackIndex}`, `Rack ${rackIndex}`, 1000, room.category));
+
+      for (let shelfIndex = 1; shelfIndex <= 4; shelfIndex += 1) {
+        const shelfId = `${rackId}-s${shelfIndex}`;
+        locations.push(
+          createLocation(shelfId, rackId, "shelf", `S${shelfIndex}`, `Shelf ${shelfIndex}`, 250, room.category),
+        );
+
+        for (let boxIndex = 1; boxIndex <= 5; boxIndex += 1) {
+          const boxId = `${shelfId}-bx${boxIndex}`;
+          locations.push(
+            createLocation(boxId, shelfId, "box", `BX${boxIndex}`, `Box ${boxIndex}`, 50, room.category),
+          );
+        }
+      }
+    }
+  }
+
+  return locations;
+});
 
 function getOccupancyStatus(percent: number): RoomSummary["status"] {
   if (percent >= 90) return "full";
@@ -28,8 +75,8 @@ function getOccupancyStatus(percent: number): RoomSummary["status"] {
 }
 
 export function getRoomSummaries(): RoomSummary[] {
-  return SEED_LOCATIONS.filter((l) => l.level === "room").map((room) => {
-    const occupancyPercent = Math.round((room.occupiedCount / room.capacity) * 100);
+  return SEED_LOCATIONS.filter((location) => location.level === "room").map((room) => {
+    const occupancyPercent = room.capacity > 0 ? Math.round((room.occupiedCount / room.capacity) * 100) : 0;
     return {
       id: room.id,
       code: room.code,
@@ -39,25 +86,26 @@ export function getRoomSummaries(): RoomSummary[] {
       occupiedCount: room.occupiedCount,
       occupancyPercent,
       status: getOccupancyStatus(occupancyPercent),
+      mappingSource: room.mappingSource,
     };
   });
 }
 
 export function getLocationChildren(parentId: string | null): ArchiveLocation[] {
-  return SEED_LOCATIONS.filter((l) => l.parentId === parentId);
+  return SEED_LOCATIONS.filter((location) => location.parentId === parentId);
 }
 
 export function getLocationById(id: string): ArchiveLocation | undefined {
-  return SEED_LOCATIONS.find((l) => l.id === id);
+  return SEED_LOCATIONS.find((location) => location.id === id);
 }
 
 /** Builds root › … › leaf codes for mock archive inventory (mirrors hierarchy walk in app). */
 export function buildMockArchiveDisplayPath(locationId: string): string {
   const chain: ArchiveLocation[] = [];
-  let cur: ArchiveLocation | undefined = getLocationById(locationId);
-  while (cur) {
-    chain.push(cur);
-    cur = cur.parentId ? getLocationById(cur.parentId) : undefined;
+  let current: ArchiveLocation | undefined = getLocationById(locationId);
+  while (current) {
+    chain.push(current);
+    current = current.parentId ? getLocationById(current.parentId) : undefined;
   }
-  return [...chain].reverse().map((l) => l.code).join(" › ") || "";
+  return [...chain].reverse().map((location) => location.code).join(" › ") || "";
 }

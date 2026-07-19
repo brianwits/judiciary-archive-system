@@ -508,7 +508,9 @@ AS $$
   OFFSET (SELECT offset_value FROM input);
 $$;
 
-CREATE OR REPLACE FUNCTION public.lookup_case_for_scan(scan_code text)
+DROP FUNCTION IF EXISTS public.lookup_case_for_scan(text) CASCADE;
+
+CREATE FUNCTION public.lookup_case_for_scan(scan_code text)
 RETURNS TABLE (
   id uuid,
   case_number text,
@@ -521,6 +523,9 @@ RETURNS TABLE (
   closed_date date,
   description text,
   case_type text,
+  case_type_id integer,
+  case_family text,
+  case_category_code text,
   court_station text,
   court_division text,
   year integer,
@@ -562,6 +567,9 @@ AS $$
     c.closed_date,
     c.description,
     c.case_type,
+    c.case_type_id,
+    c.case_family,
+    c.case_category_code,
     c.court_station,
     c.court_division,
     c.year,
@@ -575,13 +583,12 @@ AS $$
     c.notes,
     c.is_missing,
     c.created_by,
-  c.source_case_id,
-  c.source_system,
-  c.source_updated_at,
-  c.source_record_hash,
-  c.tracking_number,
-  c.created_at,
-  c.updated_at,
+    c.source_case_id,
+    c.source_system,
+    c.source_updated_at,
+    c.tracking_number,
+    c.created_at,
+    c.updated_at,
     CASE
       WHEN lower(c.case_number) = input.code THEN 'case_number'
       WHEN lower(COALESCE(c.case_number_normalized, '')) = input.code THEN 'case_number_normalized'

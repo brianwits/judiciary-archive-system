@@ -12,6 +12,13 @@ function makeCaseRow(overrides: Partial<CaseRow> = {}): CaseRow {
   return {
     id: "case-1",
     case_number: "CR/123/2025",
+    case_number_normalized: null,
+    case_number_raw: null,
+    source_case_id: null,
+    source_record_hash: null,
+    source_system: null,
+    source_updated_at: null,
+    tracking_number: null,
     title: "State v. John Doe",
     court: "KBT",
     status: "open",
@@ -19,6 +26,8 @@ function makeCaseRow(overrides: Partial<CaseRow> = {}): CaseRow {
     closed_date: null,
     description: null,
     case_type: null,
+    case_type_id: null,
+    case_family: null,
     case_category_code: null,
     court_station: null,
     court_division: null,
@@ -37,14 +46,13 @@ function makeCaseRow(overrides: Partial<CaseRow> = {}): CaseRow {
     updated_at: "2025-01-15T08:00:00Z",
     ...overrides,
   };
-}
-
-function makeArchiveRow(overrides: Partial<ArchiveStoredCaseRpcRow> = {}): ArchiveStoredCaseRpcRow {
+}function makeArchiveRow(overrides: Partial<ArchiveStoredCaseRpcRow> = {}): ArchiveStoredCaseRpcRow {
   return {
     case_id: "case-1",
     case_number: "CR/123/2025",
     title: "State v. John Doe",
     case_type: null,
+    case_type_id: null,
     case_category_code: null,
     court_station: "KBT",
     court_division: "High Court",
@@ -57,6 +65,7 @@ function makeArchiveRow(overrides: Partial<ArchiveStoredCaseRpcRow> = {}): Archi
     shelf_location: "R1-B1-R1-S1",
     filed_date: "2025-01-15",
     storage_path: "R1 › B1 › R1 › S1",
+    location_source: "generated",
     matching_total: 1,
     case_category_name: null,
     ...overrides,

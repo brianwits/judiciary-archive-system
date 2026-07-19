@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef, useState, type ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import {
   Clock3,
 } from "lucide-react";
@@ -29,6 +29,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChartReady } from "@/components/charts/chart-ready";
 import { cn } from "@/lib/utils";
 import {
   computeDerived,
@@ -84,104 +85,6 @@ const tooltipStyle = {
 
 function numberFromChartValue(value: unknown) {
   return typeof value === "number" ? value : Number(value ?? 0);
-}
-
-/**
- * Defers chart rendering until the container has positive dimensions.
- * Prevents Recharts' ResponsiveContainer from logging "width/height should be greater than 0"
- * when it mounts before the card layout is settled (common with next/dynamic + Suspense).
- */
-function ChartReady({
-  children,
-  className,
-  fallback,
-}: {
-  children: ReactNode;
-  className?: string;
-  /** Custom skeleton shown while the container dimensions are still zero. */
-  fallback?: ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const measure = () => {
-      const { width, height } = el.getBoundingClientRect();
-      if (width > 0 && height > 0) {
-        setReady(true);
-        return true;
-      }
-      return false;
-    };
-
-    // Try immediately in case layout is already settled
-    if (measure()) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-          setReady(true);
-          observer.disconnect();
-          break;
-        }
-      }
-    });
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref} className={cn("size-full", className)}>
-      {ready ? children : (fallback ?? <ChartSkeletonDefault />)}
-    </div>
-  );
-}
-
-/** Skeleton for area / bar / line charts — subtle grid + wave pattern. */
-function ChartSkeletonDefault() {
-  return (
-    <div className="flex size-full flex-col gap-2 p-2">
-      {/* Simulated Y-axis labels */}
-      <div className="flex items-end gap-3 flex-1">
-        <div className="flex h-full flex-col justify-between py-1">
-          <Skeleton className="h-2 w-6 rounded" />
-          <Skeleton className="h-2 w-4 rounded" />
-          <Skeleton className="h-2 w-3 rounded" />
-        </div>
-        {/* Chart area with subtle grid lines and a wave shape */}
-        <div className="relative flex-1 h-full rounded-lg overflow-hidden">
-          {/* Grid lines */}
-          <div className="absolute inset-0 flex flex-col justify-between px-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-px w-full bg-border/30" />
-            ))}
-          </div>
-          {/* Wave-like bars */}
-          <div className="absolute inset-x-2 bottom-0 flex items-end gap-1.5">
-            {[35, 55, 45, 65, 50, 40].map((h, i) => (
-              <Skeleton
-                key={i}
-                className="flex-1 rounded-t-sm"
-                style={{ height: `${h}%` }}
-              />
-            ))}
-          </div>
-          {/* X-axis skeleton bar */}
-          <div className="absolute bottom-0 inset-x-2 h-px bg-border/40" />
-        </div>
-      </div>
-      {/* Simulated X-axis labels */}
-      <div className="flex justify-between px-1">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-2 w-7 rounded" />
-        ))}
-      </div>
-    </div>
-  );
 }
 
 /** Skeleton for pie charts — circular placeholder + legend text lines. */
@@ -264,33 +167,36 @@ function PremiumChartCard({
 
 function ReportChartsInner({ data }: { data: ReportData }) {
   const d = computeDerived(data);
-  const averageRetrieval =
-    data.retrievalPerformance.reduce((total, item) => total + item.avgHours, 0) /
-    Math.max(data.retrievalPerformance.length, 1);
   const topDivision = data.divisionStats.reduce(
     (best, item) => (item.value > best.value ? item : best),
     data.divisionStats[0] ?? { name: "N/A", value: 0 },
   );
-  const retrievalRanking = [...data.retrievalPerformance].sort((a, b) => a.avgHours - b.avgHours);
-  const throughputSeries = data.scanningPerformance.map((item, index) => ({
+  const categoryShare = data.caseCategoryStats
+    .slice(0, 5)
+    .map((item, index) => ({
+      name: item.categoryName,
+      value: item.value,
+      fill: DIVISION_COLORS[index % DIVISION_COLORS.length],
+    }));
+  const judgeRanking = [...data.judgeStats].slice(0, 6);
+  const ageBandDistribution = data.ageBandStats.map((item, index) => ({
     ...item,
-    pace: index === 0 ? item.scans : Math.round((item.scans + data.scanningPerformance[index - 1].scans) / 2),
+    fill: DIVISION_COLORS[index % DIVISION_COLORS.length],
   }));
-  const operationalRisk = [
+  const inventorySignals = [
     { name: "Missing files", value: d.latestMissing.count, fill: PALETTE.danger },
-    { name: "Open returns gap", value: Math.max(d.totalCheckouts - d.totalReturns, 0), fill: PALETTE.warning },
-    { name: "Slow retrieval load", value: Math.round(averageRetrieval * 3), fill: PALETTE.blue },
-    { name: "Stable flow", value: Math.max(d.totalReturns, 1), fill: PALETTE.success },
+    { name: "High Court", value: data.courtLevelStats.find((item) => item.name === "High Court")?.value ?? 0, fill: PALETTE.blue },
+    { name: "Magistrate Court", value: data.courtLevelStats.find((item) => item.name === "Magistrate Court")?.value ?? 0, fill: PALETTE.warning },
+    { name: "ELC", value: data.courtLevelStats.find((item) => item.name === "Environment and Land Court")?.value ?? 0, fill: PALETTE.success },
   ];
 
   return (
     <div className="space-y-8">
-      {/* Section 1: Archive growth + Division mix — rendered immediately */}
       <section className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
         <PremiumChartCard
           title="Archive growth trajectory"
-          description="Cumulative archival volume with recent acceleration highlighted across the latest reporting months."
-          value={formatCompact(d.latestArchive.count)}
+          description="Closed-case inventory volume across the selected filing years."
+          value={formatCompact(data.totalCases)}
           insight={`+${Math.max(d.latestArchive.count - d.previousArchive, 0)} over the previous period`}
           chartClassName="flex h-[380px] flex-col"
         >
@@ -310,7 +216,7 @@ function ReportChartsInner({ data }: { data: ReportData }) {
               <Tooltip
                 contentStyle={tooltipStyle}
                 cursor={{ stroke: PALETTE.gold, strokeWidth: 1, strokeDasharray: "4 4" }}
-                formatter={(value) => [formatNumber(numberFromChartValue(value)), "Archived files"]}
+                formatter={(value) => [formatNumber(numberFromChartValue(value)), "Case files"]}
               />
               <Area
                 type="monotone"
@@ -335,7 +241,7 @@ function ReportChartsInner({ data }: { data: ReportData }) {
 
         <PremiumChartCard
           title="Division mix"
-          description="Where archival volume is concentrated across the court system."
+          description="Where the filtered closed-case inventory is concentrated across court divisions."
           value={topDivision.name}
           insight={`${formatNumber(topDivision.value)} files lead concentration`}
           chartClassName="flex h-[380px] flex-col gap-5"
@@ -376,7 +282,7 @@ function ReportChartsInner({ data }: { data: ReportData }) {
                   Lead division
                 </p>
                 <p className="mt-1 text-center text-xl font-semibold text-foreground">{topDivision.name}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{formatNumber(topDivision.value)} indexed files</p>
+                <p className="mt-1 text-sm text-muted-foreground">{formatNumber(topDivision.value)} archived files</p>
               </div>
             </div>
 
@@ -405,34 +311,32 @@ function ReportChartsInner({ data }: { data: ReportData }) {
         </PremiumChartCard>
       </section>
 
-      {/* Section 2: Movement health + Operational risk — rendered immediately */}
       <section className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
         <PremiumChartCard
-          title="Movement health"
-          description="Weekly custody flow comparing outbound file movement against confirmed returns."
-          value={`${d.movementRecovery}%`}
-          insight="Return recovery across the current reporting window"
+          title="Age-band distribution"
+          description="How old the filtered closed-case inventory is, grouped by filing year age bands."
+          value={d.topAgeBand.label}
+          insight={`${formatNumber(d.topAgeBand.value)} files in the largest age band`}
           chartClassName="flex h-[340px] flex-col"
         >
           <ChartReady>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
-            <BarChart data={data.movementFrequency} margin={{ top: 12, right: 16, left: 4, bottom: 0 }} barGap={12}>
+            <BarChart data={ageBandDistribution} margin={{ top: 12, right: 16, left: 4, bottom: 0 }} barGap={12}>
               <CartesianGrid stroke={PALETTE.grid} strokeDasharray="4 4" vertical={false} />
-              <XAxis dataKey="week" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
+              <XAxis dataKey="label" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} width={48} />
               <Tooltip contentStyle={tooltipStyle} cursor={{ fill: PALETTE.emeraldGlow, opacity: 0.3 }} />
-              <Bar dataKey="checkouts" name="Checkouts" fill={PALETTE.emerald} radius={[10, 10, 0, 0]} />
-              <Bar dataKey="returns" name="Returns" fill={PALETTE.gold} radius={[10, 10, 0, 0]} />
+              <Bar dataKey="value" name="Files" fill={PALETTE.emerald} radius={[10, 10, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           </ChartReady>
         </PremiumChartCard>
 
         <PremiumChartCard
-          title="Operational risk mix"
-          description="A pie view of the current pressure points affecting custody, retrieval, and throughput."
-          value={formatNumber(operationalRisk.reduce((sum, item) => sum + item.value, 0))}
-          insight="Composite exception load"
+          title="Inventory signal mix"
+          description="A compact view of the current inventory profile and exception load."
+          value={formatNumber(inventorySignals.reduce((sum, item) => sum + item.value, 0))}
+          insight="Filtered inventory composition"
           chartClassName="flex h-[340px] flex-col gap-5"
         >
           <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[1fr_180px]">
@@ -448,7 +352,7 @@ function ReportChartsInner({ data }: { data: ReportData }) {
                     ]}
                   />
                   <Pie
-                    data={operationalRisk}
+                    data={inventorySignals}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -459,7 +363,7 @@ function ReportChartsInner({ data }: { data: ReportData }) {
                     stroke="rgba(255,255,255,0.9)"
                     strokeWidth={3}
                   >
-                    {operationalRisk.map((item) => (
+                    {inventorySignals.map((item) => (
                       <Cell key={item.name} fill={item.fill} />
                     ))}
                   </Pie>
@@ -468,13 +372,13 @@ function ReportChartsInner({ data }: { data: ReportData }) {
               </ChartReady>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Risk view</p>
-                <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">{d.movementRecovery}%</p>
-                <p className="text-xs text-muted-foreground">recovery confidence</p>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">{formatNumber(d.latestMissing.count)}</p>
+                <p className="text-xs text-muted-foreground">missing file exceptions</p>
               </div>
             </div>
 
             <div className="space-y-3">
-              {operationalRisk.map((item) => (
+              {inventorySignals.map((item) => (
                 <div key={item.name} className="rounded-2xl border border-border/70 bg-background/75 px-3 py-3">
                   <div className="flex items-center gap-2">
                     <span className="size-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
@@ -488,11 +392,10 @@ function ReportChartsInner({ data }: { data: ReportData }) {
         </PremiumChartCard>
       </section>
 
-      {/* Section 3 + 4: Missing-file trend, Retrieval latency, Scanning cadence, Summary */}
         <section className="grid gap-6 xl:grid-cols-3">
           <PremiumChartCard
             title="Missing-file trend"
-            description="Monthly unresolved exception count, styled as a compact risk signal."
+            description="Year-by-year unresolved missing-file signal for the selected archive slice."
             value={formatNumber(d.latestMissing.count)}
             insight="Current unresolved count"
             chartClassName="flex h-[320px] flex-col"
@@ -522,20 +425,20 @@ function ReportChartsInner({ data }: { data: ReportData }) {
           </PremiumChartCard>
 
           <PremiumChartCard
-            title="Retrieval latency"
-            description="Fastest divisions appear first to make service leaders easy to spot."
-            value={`${averageRetrieval.toFixed(1)}h`}
-            insight="Cross-division average"
+            title="Judicial officer concentration"
+            description="The highest-volume judicial officers in the filtered closed-case inventory."
+            value={judgeRanking[0]?.name ?? "Not recorded"}
+            insight={`${formatNumber(judgeRanking[0]?.value ?? 0)} files lead the ranking`}
             className="xl:col-span-2"
             chartClassName="flex h-[320px] flex-col"
           >
             <ChartReady>
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
-              <BarChart data={retrievalRanking} layout="vertical" margin={{ top: 12, right: 22, left: 18, bottom: 0 }}>
+              <BarChart data={judgeRanking} layout="vertical" margin={{ top: 12, right: 22, left: 18, bottom: 0 }}>
                 <CartesianGrid stroke={PALETTE.grid} strokeDasharray="4 4" horizontal={false} />
                 <XAxis type="number" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
                 <YAxis
-                  dataKey="division"
+                  dataKey="name"
                   type="category"
                   width={120}
                   tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }}
@@ -545,13 +448,13 @@ function ReportChartsInner({ data }: { data: ReportData }) {
                 <Tooltip
                   contentStyle={tooltipStyle}
                   cursor={{ fill: PALETTE.goldSoft, opacity: 0.25 }}
-                  formatter={(value) => [`${numberFromChartValue(value).toFixed(1)}h`, "Average retrieval"]}
+                  formatter={(value) => [formatNumber(numberFromChartValue(value)), "Files"]}
                 />
-                <Bar dataKey="avgHours" fill={PALETTE.warning} radius={[0, 12, 12, 0]}>
+                <Bar dataKey="value" fill={PALETTE.warning} radius={[0, 12, 12, 0]}>
                   <LabelList
-                    dataKey="avgHours"
+                    dataKey="value"
                     position="right"
-                    formatter={(value) => `${numberFromChartValue(value).toFixed(1)}h`}
+                    formatter={(value) => formatNumber(numberFromChartValue(value))}
                     className="fill-muted-foreground text-xs"
                   />
                 </Bar>
@@ -563,35 +466,34 @@ function ReportChartsInner({ data }: { data: ReportData }) {
 
         <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <PremiumChartCard
-            title="Scanning cadence"
-            description="Daily throughput with a smoothed pace line to reveal consistency, not just spikes."
-            value={formatNumber(d.totalScans)}
-            insight={`${d.peakScanDay.day} leads weekly throughput`}
+            title="Category distribution"
+            description="Top case categories within the current filter set."
+            value={d.topCaseCategory.categoryName}
+            insight={`${formatNumber(d.topCaseCategory.value)} files in the leading category`}
             chartClassName="flex h-[320px] flex-col"
           >
             <ChartReady>
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
-              <AreaChart data={throughputSeries} margin={{ top: 12, right: 16, left: 4, bottom: 0 }}>
+              <AreaChart data={categoryShare} margin={{ top: 12, right: 16, left: 4, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="scanThroughputFill" x1="0" x2="0" y1="0" y2="1">
+                  <linearGradient id="categoryThroughputFill" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor={PALETTE.gold} stopOpacity={0.3} />
                     <stop offset="100%" stopColor={PALETTE.gold} stopOpacity={0.03} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke={PALETTE.grid} strokeDasharray="4 4" vertical={false} />
-                <XAxis dataKey="day" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fill: PALETTE.mutedForeground, fontSize: 12 }} tickLine={false} axisLine={false} width={42} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Area
                   type="monotone"
-                  dataKey="scans"
-                  name="Scans"
+                  dataKey="value"
+                  name="Files"
                   stroke={PALETTE.gold}
                   strokeWidth={3}
-                  fill="url(#scanThroughputFill)"
+                  fill="url(#categoryThroughputFill)"
                   activeDot={{ r: 5, fill: PALETTE.emerald, stroke: "white", strokeWidth: 2 }}
                 />
-                <Line type="monotone" dataKey="pace" name="Pace line" stroke={PALETTE.emerald} strokeWidth={2} dot={false} strokeDasharray="5 5" />
               </AreaChart>
             </ResponsiveContainer>
             </ChartReady>
@@ -605,12 +507,13 @@ function ReportChartsInner({ data }: { data: ReportData }) {
               </div>
               <p className="text-base text-foreground leading-relaxed">
                 The archive is expanding steadily (+{d.archiveGrowthRate.toFixed(1)}% growth). {" "}
-                Retrieval latency averages {averageRetrieval.toFixed(1)}h across divisions, with {" "}
-                <strong>{retrievalRanking[0]?.division ?? "N/A"}</strong> performing fastest. {" "}
-                {d.movementRecovery < 90
-                  ? `Movement recovery is at ${d.movementRecovery}% — closing the returns gap improves custody tracking.`
-                  : `Movement recovery is strong at ${d.movementRecovery}%.`
-                }
+                <strong>{d.topDivision.name}</strong> carries the largest inventory share at{" "}
+                {formatNumber(d.topDivision.value)} files. The lead judicial officer is{" "}
+                <strong>{d.topJudge.name}</strong>, and the dominant case category is{" "}
+                <strong>{d.topCaseCategory.categoryName}</strong>.{" "}
+                {d.latestMissing.count > 0
+                  ? `${formatNumber(d.latestMissing.count)} file exceptions remain unresolved and should be reviewed against the physical archive.`
+                  : "No missing-file exceptions are currently present in the filtered inventory."}
               </p>
             </CardContent>
           </Card>

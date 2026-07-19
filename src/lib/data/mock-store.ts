@@ -5,11 +5,11 @@ import {
   getLocationById,
   getRoomSummaries,
 } from "@/data/seed/archive-locations";
-import { SEED_CASES, SEED_CASE_NUMBER_ALIASES } from "@/data/seed/cases";
 import { SEED_DASHBOARD, SEED_REGISTRY_REQUESTS } from "@/data/seed/dashboard";
 import { SEED_DOCUMENTS } from "@/data/seed/documents";
 import { SEED_MOVEMENTS } from "@/data/seed/movements";
 import { MOCK_USERS } from "@/data/seed/users";
+import { loadCasesFromCsv } from "@/lib/data/csv-loader";
 import { getCaseCategoryLabel } from "@/lib/case-category";
 import { normalizeCaseNumberLookup } from "@/lib/case-number";
 import { filterCases } from "@/lib/data/case-filtering";
@@ -23,9 +23,23 @@ import type { UserProfile } from "@/types/user";
 import type { NotificationPreferences } from "@/types/notification";
 import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/types/notification";
 import { normalizeCourtEmail } from "@/lib/email";
+import { buildMockDashboardData, buildMockReportData } from "@/lib/data/mock-analytics";
+import type { ReportFilters } from "@/lib/reports-computations";
+import {
+  decorateMovement,
+  movementMatchesFilters,
+  sortMovementsOperationally,
+  sortRecentMovementPriority,
+  summarizeMovements,
+} from "@/lib/movement-utils";
+import type { MovementFilters, MovementSummary } from "@/types/movement";
 
-let cases = [...SEED_CASES];
-let caseNumberAliases = [...SEED_CASE_NUMBER_ALIASES];
+// ─── Load cases from CSV ────────────────────────────────────────────────────
+const csvData = loadCasesFromCsv();
+const CSV_CASES = csvData.cases;
+
+let cases = [...CSV_CASES];
+let caseNumberAliases: { caseId: string; caseNumber: string }[] = [];
 let movements = [...SEED_MOVEMENTS];
 let documents = [...SEED_DOCUMENTS];
 let auditLogs = [...SEED_AUDIT_LOGS];
@@ -48,13 +62,20 @@ export const mockStore = {
   getUserByEmail: (email: string) =>
     users.find((u) => normalizeCourtEmail(u.email) === normalizeCourtEmail(email)),
 
-  getDashboard: (): DashboardData => ({
-    ...SEED_DASHBOARD,
-    activeCasesCount: cases.filter((c) => c.status === "open").length,
-    registryRequestsCount: registryRequests.filter((r) => r.status === "pending").length,
-    alerts: SEED_DASHBOARD.alerts,
-  }),
+  getDashboard: (): DashboardData => {
+    return buildMockDashboardData({
+      cases,
+      users,
+      registryRequests,
+      baseDashboard: SEED_DASHBOARD,
+    });
+  },
   getRegistryRequests: (): RegistryRequest[] => [...registryRequests],
+  getReportData: (filters: ReportFilters = {}) =>
+    buildMockReportData({
+      cases,
+      filters,
+    }),
   updateRegistryRequest: (id: string, data: Partial<RegistryRequest>): RegistryRequest | null => {
     const idx = registryRequests.findIndex((item) => item.id === id);
     if (idx === -1) return null;
@@ -180,37 +201,66 @@ export const mockStore = {
         archiveCode: c.archiveCode,
         shelfLocation: c.shelfLocation,
         filedDate: c.filedDate,
-        storagePath: buildMockArchiveDisplayPath(c.locationId!),
+        storagePath: c.locationId ? buildMockArchiveDisplayPath(c.locationId) : "",
+        locationSource: "generated" as const,
       }))
-      .sort((a, b) => a.caseNumber.localeCompare(b.caseNumber));
+      .sort((a, b) => {
+        const yearDelta = (b.year ?? 0) - (a.year ?? 0);
+        return yearDelta !== 0 ? yearDelta : a.caseNumber.localeCompare(b.caseNumber);
+      });
   },
 
   getLocationChildren,
   getLocationById,
 
-  getMovements: () => [...movements],
-  getMovementsByCase: (caseId: string) => movements.filter((m) => m.caseId === caseId),
-  getOpenMovements: (): OpenMovementOption[] =>
+  getMovements: (filters?: MovementFilters) =>
     [...movements]
-      .filter((movement) => OPEN_MOVEMENT_STATUSES.has(movement.status))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .map((movement) => ({
-        id: movement.id,
-        caseId: movement.caseId,
-        caseNumber: movement.caseNumber,
-        destinationOffice: movement.destinationOffice,
-        createdAt: movement.createdAt,
-      })),
-  getRecentMovements: (limit = 5) =>
-    [...movements].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit),
+      .map((movement) => decorateMovement(movement))
+      .filter((movement) => movementMatchesFilters(movement, filters))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+  getMovementsByCase: (caseId: string) =>
+    movements
+      .filter((m) => m.caseId === caseId)
+      .map((movement) => decorateMovement(movement)),
+  getOpenMovements: (filters?: MovementFilters): OpenMovementOption[] =>
+    sortMovementsOperationally(
+      [...movements]
+        .map((movement) => decorateMovement(movement))
+        .filter((movement) => OPEN_MOVEMENT_STATUSES.has(movement.status))
+        .filter((movement) => movementMatchesFilters(movement, filters)),
+    ).map((movement) => ({
+      id: movement.id,
+      caseId: movement.caseId,
+      caseNumber: movement.caseNumber,
+      caseFamily: movement.caseFamily,
+      archiveCode: movement.archiveCode,
+      shelfLocation: movement.shelfLocation,
+      expectedReturnDate: movement.expectedReturnDate,
+      status: movement.status,
+      isOverdue: movement.isOverdue,
+      destinationOffice: movement.destinationOffice,
+      createdAt: movement.createdAt,
+    })),
+  getRecentMovements: (limit = 5, filters?: MovementFilters) =>
+    sortRecentMovementPriority(
+      [...movements]
+        .map((movement) => decorateMovement(movement))
+        .filter((movement) => movementMatchesFilters(movement, filters)),
+    ).slice(0, limit),
+  getMovementSummary: (filters?: MovementFilters): MovementSummary =>
+    summarizeMovements(
+      [...movements]
+        .map((movement) => decorateMovement(movement))
+        .filter((movement) => movementMatchesFilters(movement, filters)),
+    ),
 
   addMovement: (movement: Omit<FileMovement, "id" | "createdAt" | "updatedAt">): FileMovement => {
-    const newMovement: FileMovement = {
+    const newMovement = decorateMovement({
       ...movement,
       id: `mov-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+    });
     movements = [newMovement, ...movements];
     return newMovement;
   },
@@ -218,7 +268,11 @@ export const mockStore = {
   updateMovement: (id: string, data: Partial<FileMovement>): FileMovement | null => {
     const idx = movements.findIndex((m) => m.id === id);
     if (idx === -1) return null;
-    movements[idx] = { ...movements[idx], ...data, updatedAt: new Date().toISOString() };
+    movements[idx] = decorateMovement({
+      ...movements[idx],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
     return movements[idx];
   },
 

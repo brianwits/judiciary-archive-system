@@ -7,7 +7,7 @@
  *   - Session creation & token validation
  *   - Profile linkage (public.profiles row must exist)
  *   - Error handling (wrong password, nonexistent user)
- *   - All 11 seeded users can authenticate
+ *   - Every user in the shared seeded roster can authenticate
  *
  * Run: node scripts/test-supabase-login.mjs
  *
@@ -16,7 +16,6 @@
  *   2. npx supabase db reset       (applies migrations + seed.sql)
  *   3. node scripts/seed-users.mjs (creates auth.users + profiles)
  *   4. .env.local must have:
- *        NEXT_PUBLIC_USE_MOCK_DATA=false
  *        NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
  *        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=pyb_...
  *        SUPABASE_SERVICE_ROLE_KEY=svc_...
@@ -30,6 +29,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { COURT_TEST_PASSWORD, STAFF } from "./court-test-users.mjs";
 
 // Load .env.local if available
 function loadEnvFile(path) {
@@ -135,7 +135,7 @@ async function testNonExistentUser(supabase) {
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email: "nonexistent@court.go.ke",
-    password: "demo1234",
+    password: COURT_TEST_PASSWORD,
   });
 
   assert(error !== null, "Should return an error for non-existent user");
@@ -145,19 +145,7 @@ async function testNonExistentUser(supabase) {
 async function testAllSeededUsersCanLogin(supabase) {
   console.log(`\n🔑 Test: All seeded users can log in`);
 
-  const emails = [
-    { email: "brian.mugendi@court.go.ke", pw: "demo1234" },
-    { email: "mary.wanjiku@court.go.ke", pw: "demo1234" },
-    { email: "peter.ochieng@court.go.ke", pw: "demo1234" },
-    { email: "grace.akinyi@court.go.ke", pw: "demo1234" },
-    { email: "david.mutua@court.go.ke", pw: "demo1234" },
-    { email: "j.njeri@court.go.ke", pw: "demo1234" },
-    { email: "brian.mugendi@court.go.ke", pw: "court1234" },
-    { email: "admin@court.go.ke", pw: "court1234" },
-    { email: "samuel.maina@court.go.ke", pw: "court1234" },
-    { email: "rita.otieno@court.go.ke", pw: "court1234" },
-    { email: "paul.kamau@court.go.ke", pw: "court1234" },
-  ];
+  const emails = STAFF.map(({ email }) => ({ email, pw: COURT_TEST_PASSWORD }));
 
   for (const { email, pw } of emails) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
@@ -186,8 +174,8 @@ async function main() {
   });
 
   // Run tests
-  await testValidLogin(supabase, "brian.mugendi@court.go.ke", "demo1234", "Valid login (court.go.ke roster)");
-  await testValidLogin(supabase, "admin@court.go.ke", "court1234", "Valid login (court.go.ke QA)");
+  await testValidLogin(supabase, "brian.mugendi@court.go.ke", COURT_TEST_PASSWORD, "Valid login (seeded staff)");
+  await testValidLogin(supabase, "admin@court.go.ke", COURT_TEST_PASSWORD, "Valid login (shared admin)");
   await testInvalidCredentials(supabase);
   await testNonExistentUser(supabase);
   await testAllSeededUsersCanLogin(supabase);

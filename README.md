@@ -60,10 +60,9 @@ Built with **Next.js 16**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, **Su
    Copy `.env.example` to `.env.local`:
 
    ```env
-   NEXT_PUBLIC_USE_MOCK_DATA=true
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
    ```
-
-   Production builds (`npm run build`, `NODE_ENV=production`) **force mock mode off in code** regardless of this variable, so demo auth never runs in production deployments.
 
 3. **Run**
 
@@ -73,8 +72,8 @@ Built with **Next.js 16**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, **Su
 
 4. **Sign in** at [http://localhost:3000/login](http://localhost:3000/login)
 
-   - Select any demo user from the dropdown
-   - Password: `demo1234`
+   - Use a seeded court staff account
+   - Default seeded password: `court1234`
 
    **Supabase troubleshooting:** If Auth accepts your password but you are bounced back to login with **“Account not linked to staff profiles”**, your user exists in `auth.users` but not in `public.profiles`. Run **`npm run db:seed-users`** (with `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` per [`.env.example`](.env.example)) or apply pending migrations—including any **profile backfill** migration—and try again.
 
@@ -127,10 +126,9 @@ If you switch from hosted HTTP OAuth to stdio PAT, **remove** the old `supabase`
 
 ## Supabase mode
 
-Set `NEXT_PUBLIC_USE_MOCK_DATA=false` and configure:
+Configure:
 
 ```env
-NEXT_PUBLIC_USE_MOCK_DATA=false
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
@@ -174,10 +172,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 3. Run seed data (optional):
 
    ```bash
+   npm run db:generate-live-seed
    psql "$DATABASE_URL" -f supabase/seed.sql
    ```
 
    Or paste `supabase/seed.sql` into the SQL Editor.
+
+   `supabase/seed.sql` is generated from the validated Kabarnet CTS closed-case exports. It clears demo tables and reloads authoritative closed-case rows only. For larger query benchmarks, run `supabase/seed/perf-test.sql` separately.
 
 ### First admin user
 
@@ -195,7 +196,7 @@ Use **publishable** and **anon** keys only in the browser and in [`createServerC
    npm run db:seed-users
    ```
 
-   Creates the courts.go.ke demo roster (`demo1234`) plus **QA users** on `@court.go.ke` (including alias addresses like `admin@court.go.ke`) with password `court1234` (see table below).
+   Creates the seeded `@court.go.ke` staff accounts (including `admin@court.go.ke`) with password `court1234` (see table below).
 
 **Validate connectivity (hosted + keys in `.env.local`):**
 
@@ -229,7 +230,7 @@ After `npm run db:seed-users`, these integration-test accounts exist (same scrip
 | `rita.otieno@court.go.ke` | registry_clerk |
 | `paul.kamau@court.go.ke` | judge |
 
-Prefer these on Vercel when `demo1234` does not apply or roster emails were never created.
+Prefer these on Vercel after running `npm run db:seed-users`.
 
 ### Users database
 
@@ -277,8 +278,7 @@ export SUPABASE_ACCESS_TOKEN=your-access-token
 npm run db:setup-hosted
 ```
 
-This script links the project, runs `db push`, configures Auth redirect URLs for Vercel, applies `seed.sql` + storage policies, and seeds 6 court staff (`demo1234`).
-
+This script links the project, runs `db push`, configures Auth redirect URLs for Vercel, applies the generated live `seed.sql` + storage policies, and seeds the shared `@court.go.ke` staff accounts (`court1234`).
 Then configure Vercel env vars and redeploy:
 
 ```bash
@@ -292,7 +292,6 @@ Set for **Production** and **Development** (Preview: add in Vercel dashboard —
 
 | Variable | Value | Notes |
 |----------|-------|-------|
-| `NEXT_PUBLIC_USE_MOCK_DATA` | `false` | Disables mock auth/data |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://zjzqogrrlvxavxicdcec.supabase.co` | Browser-safe |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | From Supabase → Settings → API | Browser-safe |
 | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase → Settings → API | **Server-only** — User Management emails, `db:seed-users` |
@@ -300,7 +299,6 @@ Set for **Production** and **Development** (Preview: add in Vercel dashboard —
 CLI example (production):
 
 ```bash
-vercel env update NEXT_PUBLIC_USE_MOCK_DATA production --yes --value "false"
 vercel env add NEXT_PUBLIC_SUPABASE_URL production --yes --force --value "https://zjzqogrrlvxavxicdcec.supabase.co"
 vercel env add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY production --yes --force --value "<publishable-key>"
 vercel env add SUPABASE_SERVICE_ROLE_KEY production --yes --force --value "<service-role-key>"
@@ -331,7 +329,7 @@ vercel --prod
 
 Verify on `https://judiciary-archive-system.vercel.app`:
 
-1. `/login` — no demo user dropdown (mock mode off)
+1. `/login` — staff email/password sign-in only
 2. Sign in with a QA account: `admin@court.go.ke` / `court1234`, `brian.mugendi@court.go.ke` / `court1234`, or `samuel.maina@court.go.ke` / `court1234`
 3. Dashboard loads live KPIs from Supabase
 4. `/users` lists staff with emails (requires `SUPABASE_SERVICE_ROLE_KEY` on Vercel)

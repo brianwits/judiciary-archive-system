@@ -9,6 +9,8 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      CSV_SOURCE_DIR: ${{ github.workspace }}/src/__tests__/fixtures/cts
 
     steps:
       - uses: actions/checkout@v4

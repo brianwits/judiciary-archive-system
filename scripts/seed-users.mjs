@@ -1,112 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
-
-/** Original demo roster (Kenya judiciary-style emails). */
-const DEMO_PASSWORD = "demo1234";
-
-const STAFF = [
-  {
-    fullName: "Brian Mugendi",
-    email: "brian.mugendi@court.go.ke",
-    pjNumber: "80602",
-    department: "ICT",
-    role: "admin",
-  },
-  {
-    fullName: "Mary Wanjiku",
-    email: "mary.wanjiku@court.go.ke",
-    pjNumber: "74118",
-    department: "ICT",
-    role: "ict_officer",
-  },
-  {
-    fullName: "Peter Ochieng",
-    email: "peter.ochieng@court.go.ke",
-    pjNumber: "69241",
-    department: "Registry",
-    role: "registry_clerk",
-  },
-  {
-    fullName: "Grace Akinyi",
-    email: "grace.akinyi@court.go.ke",
-    pjNumber: "58320",
-    department: "Archive",
-    role: "archivist",
-  },
-  {
-    fullName: "David Mutua",
-    email: "david.mutua@court.go.ke",
-    pjNumber: "62877",
-    department: "Registry",
-    role: "deputy_registrar",
-  },
-  {
-    fullName: "Hon. Magistrate Hassan",
-    email: "hassan.omondi@court.go.ke",
-    pjNumber: "50218",
-    department: "Judiciary",
-    role: "magistrate",
-  },
-  {
-    fullName: "Hon. Justice Njeri",
-    email: "j.njeri@court.go.ke",
-    pjNumber: "45903",
-    department: "Judiciary",
-    role: "judge",
-  },
-];
-
-/**
- * Vercel / hosted QA logins (@court.go.ke).
- * Password is intentionally simple for integration testing only.
- */
-const COURT_TEST_PASSWORD = "court1234";
-
-const TEST_USERS_COURT_KE = [
-  {
-    fullName: "Brian Mugendi",
-    email: "brian.mugendi@court.go.ke",
-    pjNumber: "90004",
-    department: "ICT",
-    role: "admin",
-  },
-  {
-    fullName: "Court Admin",
-    email: "admin@court.go.ke",
-    pjNumber: "90005",
-    department: "ICT",
-    role: "admin",
-  },
-  {
-    fullName: "Samuel Maina",
-    email: "samuel.maina@court.go.ke",
-    pjNumber: "90001",
-    department: "ICT",
-    role: "admin",
-  },
-  {
-    fullName: "Rita Otieno",
-    email: "rita.otieno@court.go.ke",
-    pjNumber: "90002",
-    department: "Registry",
-    role: "registry_clerk",
-  },
-  {
-    fullName: "Paul Kamau",
-    email: "paul.kamau@court.go.ke",
-    pjNumber: "90003",
-    department: "Judiciary",
-    role: "judge",
-  },
-  {
-    fullName: "Hon. Magistrate Hassan",
-    email: "hassan.omondi@court.go.ke",
-    pjNumber: "90006",
-    department: "Judiciary",
-    role: "magistrate",
-  },
-];
+import { COURT_TEST_PASSWORD, STAFF } from "./court-test-users.mjs";
 
 function loadEnvFile(path) {
   if (!existsSync(path)) return;
@@ -148,7 +43,7 @@ async function findUserIdByEmail(email) {
   return data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase())?.id ?? null;
 }
 
-async function seedUser(staff, password = DEMO_PASSWORD, { syncPasswordAlways = false } = {}) {
+async function seedUser(staff, password = COURT_TEST_PASSWORD, { syncPasswordAlways = false } = {}) {
   let userId = await findUserIdByEmail(staff.email);
 
   if (!userId) {
@@ -205,20 +100,13 @@ async function seedUser(staff, password = DEMO_PASSWORD, { syncPasswordAlways = 
 }
 
 async function main() {
-  console.log("Seeding court staff users (courts.go.ke roster)...\n");
+  console.log("Seeding court staff users...\n");
   for (const staff of STAFF) {
-    await seedUser(staff, DEMO_PASSWORD);
-  }
-
-  console.log(`\nSeeding QA test users (court.go.ke) — shared password.\n`);
-
-  for (const staff of TEST_USERS_COURT_KE) {
     await seedUser(staff, COURT_TEST_PASSWORD, { syncPasswordAlways: true });
   }
 
   console.log(`\nDone.`);
-  console.log(`  • Original roster password: ${DEMO_PASSWORD}`);
-  console.log(`  • court.go.ke test password: ${COURT_TEST_PASSWORD}`);
+  console.log(`  • Shared seeded password: ${COURT_TEST_PASSWORD}`);
 }
 
 main().catch((error) => {
