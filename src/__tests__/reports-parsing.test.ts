@@ -4,6 +4,7 @@ import { REPORT_DATA } from "@/data/seed/dashboard";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function asJson(value: unknown): any {
   return JSON.parse(JSON.stringify(value));
 }
@@ -265,7 +266,7 @@ describe("parseReportJson — edge cases", () => {
   it("handles null input fields gracefully", () => {
     const result = parseReportJson({
       someIrrelevantField: "test",
-    } as any);
+    } as unknown as Parameters<typeof parseReportJson>[0]);
     expect(result.caseTypeStats).toEqual([]);
     expect(result.caseCategoryStats).toEqual([]);
     expect(result.courtLevelStats).toEqual([]);
@@ -352,6 +353,7 @@ describe("ELC filter isolation — simulated filtering logic", () => {
       (t) => t.courtLevel === "Environment and Land Court",
     );
     for (const t of filtered) {
+      expect(t.courtLevel).toBe("Environment and Land Court");
     }
   });
 });

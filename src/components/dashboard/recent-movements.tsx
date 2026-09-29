@@ -72,7 +72,7 @@ export function RecentMovements({ movements }: RecentMovementsProps) {
                   <TableRow key={movement.id}>
                     <TableCell>
                       <Link
-                        href={`/cases/${movement.caseId}`}
+                        href={`/cases/${movement.caseId}?from=dashboard`}
                         className="font-medium text-primary hover:underline"
                       >
                         {movement.caseNumber}

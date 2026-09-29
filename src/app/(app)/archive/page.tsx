@@ -29,6 +29,7 @@ async function ArchivePageContent() {
       rooms={rooms}
       storedCases={archiveInventory.items}
       matchingTotal={archiveInventory.total}
+      from="archive"
     />
   );
 }

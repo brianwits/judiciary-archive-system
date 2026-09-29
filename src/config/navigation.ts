@@ -57,3 +57,51 @@ export const MAIN_NAV: NavItem[] = [
 
 /** Longest-prefix match vs {@link MAIN_NAV} items that declare a permission (excluding `/`). */
 export { permissionRequiredForAppPath } from "@/config/navigation-permissions";
+
+/**
+ * Resolves the effective navigation path for active link highlighting in the sidebar.
+ * When detail pages (like /cases/[id] or /archive/rooms/[roomId]) are reached from a
+ * specific context indicated by the `from` query param (e.g. "archive" or "dashboard"),
+ * the highlighted nav item matches the origin section rather than jumping.
+ */
+export function getEffectiveActivePath(pathname: string, fromParam: string | null): string {
+  if (!fromParam) return pathname;
+
+  const normalizedFrom = fromParam.trim().toLowerCase();
+
+  // If viewing a case details page: /cases/[id]
+  if (pathname.startsWith("/cases/")) {
+    if (normalizedFrom === "archive" || normalizedFrom === "/archive") {
+      return "/archive";
+    }
+    if (
+      normalizedFrom === "dashboard" ||
+      normalizedFrom === "/" ||
+      normalizedFrom === "/dashboard"
+    ) {
+      return "/";
+    }
+    if (normalizedFrom === "cases" || normalizedFrom === "/cases") {
+      return "/cases";
+    }
+    if (normalizedFrom === "tracking" || normalizedFrom === "/tracking") {
+      return "/tracking";
+    }
+  }
+
+  // If viewing an archive room details page: /archive/rooms/[roomId]
+  if (pathname.startsWith("/archive/rooms/")) {
+    if (
+      normalizedFrom === "dashboard" ||
+      normalizedFrom === "/" ||
+      normalizedFrom === "/dashboard"
+    ) {
+      return "/";
+    }
+    if (normalizedFrom === "archive" || normalizedFrom === "/archive") {
+      return "/archive";
+    }
+  }
+
+  return pathname;
+}

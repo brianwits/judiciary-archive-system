@@ -32,10 +32,15 @@ import { cn } from "@/lib/utils";
 
 type CaseDetailPageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ from?: string }>;
 };
 
-export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
+export default async function CaseDetailPage({ params, searchParams }: CaseDetailPageProps) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const fromParam = resolvedSearchParams?.from;
+  const isFromArchive = fromParam === "archive";
+  const isFromDashboard = fromParam === "dashboard";
   const caseFile = await getCaseById(id);
 
   if (!caseFile) {
@@ -48,13 +53,24 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     getAuditLogsForCase(id, caseFile.caseNumber),
   ]);
 
+  let backHref = "/cases";
+  let backLabel = "← Back to cases";
+
+  if (isFromArchive) {
+    backHref = "/archive";
+    backLabel = "← Back to archive";
+  } else if (isFromDashboard) {
+    backHref = "/";
+    backLabel = "← Back to dashboard";
+  }
+
   return (
     <div className="space-y-6">
       <Link
-        href="/cases"
+        href={backHref}
         className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 inline-flex")}
       >
-        ← Back to cases
+        {backLabel}
       </Link>
 
       <PageHeader
