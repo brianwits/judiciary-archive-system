@@ -32,10 +32,13 @@ import { cn } from "@/lib/utils";
 
 type CaseDetailPageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ from?: string }>;
 };
 
-export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
+export default async function CaseDetailPage({ params, searchParams }: CaseDetailPageProps) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const isFromArchive = resolvedSearchParams?.from === "archive";
   const caseFile = await getCaseById(id);
 
   if (!caseFile) {
@@ -51,10 +54,10 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   return (
     <div className="space-y-6">
       <Link
-        href="/cases"
+        href={isFromArchive ? "/archive" : "/cases"}
         className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 inline-flex")}
       >
-        ← Back to cases
+        {isFromArchive ? "← Back to archive" : "← Back to cases"}
       </Link>
 
       <PageHeader

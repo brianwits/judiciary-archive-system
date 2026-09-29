@@ -23,12 +23,18 @@ type ArchiveStorageMapProps = {
   storedCases: ArchiveStoredCase[];
   /** Rows returned by inventory query matching `storedCases.length` when capped. */
   matchingTotal?: number;
+  from?: string;
 };
 
 const cardElevated =
   "border-border/50 shadow-[var(--shadow-premium)] ring-1 ring-border/45 transition-shadow duration-300 hover:shadow-[0_14px_28px_-8px_rgb(0_0_0/0.12)]";
 
-export function ArchiveStorageMap({ rooms, storedCases, matchingTotal }: ArchiveStorageMapProps) {
+export function ArchiveStorageMap({
+  rooms,
+  storedCases,
+  matchingTotal,
+  from = "archive",
+}: ArchiveStorageMapProps) {
   const inventoryTotal =
     matchingTotal !== undefined ? matchingTotal : storedCases.length;
   const truncated = inventoryTotal > storedCases.length && storedCases.length > 0;
@@ -93,7 +99,7 @@ export function ArchiveStorageMap({ rooms, storedCases, matchingTotal }: Archive
             {storedCases.map((row) => (
               <Link
                 key={row.id}
-                href={`/cases/${row.id}`}
+                href={from ? `/cases/${row.id}?from=${encodeURIComponent(from)}` : `/cases/${row.id}`}
                 className="group block rounded-xl outline-none ring-offset-background focus-visible:ring-3 focus-visible:ring-accent/40 focus-visible:ring-offset-2"
               >
                 <article className="flex h-full flex-col rounded-xl border border-border/60 bg-card p-4 text-left transition-[box-shadow,border-color] group-hover:border-primary/20 group-hover:shadow-md group-focus-visible:border-primary/30 group-focus-visible:shadow-md">
