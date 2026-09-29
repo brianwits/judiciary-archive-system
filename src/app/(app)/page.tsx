@@ -179,6 +179,7 @@ export default async function DashboardPage() {
             rooms={rooms}
             storedCases={archiveInventory.items}
             matchingTotal={archiveInventory.total}
+            from="dashboard"
           />
         </Suspense>
       </div>

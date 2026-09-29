@@ -33,7 +33,7 @@ export function ArchiveStorageMap({
   rooms,
   storedCases,
   matchingTotal,
-  from = "archive",
+  from,
 }: ArchiveStorageMapProps) {
   const inventoryTotal =
     matchingTotal !== undefined ? matchingTotal : storedCases.length;
@@ -82,7 +82,7 @@ export function ArchiveStorageMap({
               </Link>
               {rooms.length > 0 ? (
                 <Link
-                  href={`/archive/rooms/${rooms[0].id}`}
+                  href={from ? `/archive/rooms/${rooms[0].id}?from=${encodeURIComponent(from)}` : `/archive/rooms/${rooms[0].id}`}
                   className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                 >
                   Browse archive tree
@@ -160,7 +160,7 @@ export function ArchiveStorageMap({
               {rooms.map((room) => (
                 <Link
                   key={room.id}
-                  href={`/archive/rooms/${room.id}`}
+                  href={from ? `/archive/rooms/${room.id}?from=${encodeURIComponent(from)}` : `/archive/rooms/${room.id}`}
                   className="group block rounded-xl outline-none ring-offset-background focus-visible:ring-3 focus-visible:ring-accent/40 focus-visible:ring-offset-2"
                 >
                   <div className="rounded-xl border border-border/60 bg-muted/20 p-4 transition-[box-shadow,border-color] group-hover:border-primary/25 group-hover:bg-muted/35 group-hover:shadow-sm group-focus-visible:border-primary/30">

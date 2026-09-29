@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft, Scale } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { navItemsWithBadges, type NavCounts } from "@/config/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import {
+  getEffectiveActivePath,
+  navItemsWithBadges,
+  type NavCounts,
+  type NavItemWithBadge,
+} from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { hasPermission } from "@/types/roles";
 import type { UserRole } from "@/types/roles";
@@ -16,6 +21,84 @@ type AppSidebarProps = {
   role: UserRole;
   navCounts: NavCounts;
 };
+
+function NavList({
+  visibleNav,
+  activePath,
+  showLabels,
+  closeMobile,
+}: {
+  visibleNav: NavItemWithBadge[];
+  activePath: string;
+  showLabels: boolean;
+  closeMobile: () => void;
+}) {
+  return (
+    <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+      {visibleNav.map((item) => {
+        const isActive =
+          item.href === "/"
+            ? activePath === "/"
+            : activePath.startsWith(item.href);
+        const Icon = item.icon;
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={closeMobile}
+            className={cn(
+              "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+              isActive
+                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                : "text-sidebar-foreground/78 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
+            )}
+          >
+            {isActive && (
+              <span className="absolute left-0 top-1/2 h-5 w-1.5 -translate-y-1/2 rounded-r-full bg-accent" />
+            )}
+            <Icon className="size-4 shrink-0 transition-transform duration-200 will-change-transform group-hover:scale-110" />
+            {showLabels && (
+              <>
+                <span className="flex-1 truncate">{item.title}</span>
+                {item.liveBadge !== undefined && (
+                  <Badge className="bg-accent text-accent-foreground text-xs">
+                    {item.liveBadge}
+                  </Badge>
+                )}
+              </>
+            )}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function SidebarNavWithParams({
+  visibleNav,
+  pathname,
+  showLabels,
+  closeMobile,
+}: {
+  visibleNav: NavItemWithBadge[];
+  pathname: string;
+  showLabels: boolean;
+  closeMobile: () => void;
+}) {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
+  const effectivePath = getEffectiveActivePath(pathname, from);
+
+  return (
+    <NavList
+      visibleNav={visibleNav}
+      activePath={effectivePath}
+      showLabels={showLabels}
+      closeMobile={closeMobile}
+    />
+  );
+}
 
 export function AppSidebar({ role, navCounts }: AppSidebarProps) {
   const pathname = usePathname();
@@ -60,44 +143,23 @@ export function AppSidebar({ role, navCounts }: AppSidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-        {visibleNav.map((item) => {
-          const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={closeMobile}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                  : "text-sidebar-foreground/78 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
-              )}
-            >
-              {isActive && (
-                <span className="absolute left-0 top-1/2 h-5 w-1.5 -translate-y-1/2 rounded-r-full bg-accent" />
-              )}
-              <Icon className="size-4 shrink-0 transition-transform duration-200 will-change-transform group-hover:scale-110" />
-              {showLabels && (
-                <>
-                  <span className="flex-1 truncate">{item.title}</span>
-                  {item.liveBadge !== undefined && (
-                    <Badge className="bg-accent text-accent-foreground text-xs">
-                      {item.liveBadge}
-                    </Badge>
-                  )}
-                </>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      <Suspense
+        fallback={
+          <NavList
+            visibleNav={visibleNav}
+            activePath={pathname}
+            showLabels={showLabels}
+            closeMobile={closeMobile}
+          />
+        }
+      >
+        <SidebarNavWithParams
+          visibleNav={visibleNav}
+          pathname={pathname}
+          showLabels={showLabels}
+          closeMobile={closeMobile}
+        />
+      </Suspense>
 
       {/* Collapse toggle (desktop only) */}
       <div className="hidden border-t border-sidebar-border/80 p-2 md:block">

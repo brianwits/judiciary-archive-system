@@ -23,10 +23,13 @@ import { cn } from "@/lib/utils";
 
 type RoomDetailPageProps = {
   params: Promise<{ roomId: string }>;
+  searchParams?: Promise<{ from?: string }>;
 };
 
-export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
+export default async function RoomDetailPage({ params, searchParams }: RoomDetailPageProps) {
   const { roomId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const isFromDashboard = resolvedSearchParams?.from === "dashboard";
   const room = await getLocationById(roomId);
 
   if (!room || room.level !== "room") {
@@ -36,13 +39,16 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
   const children = await getLocationChildren(roomId);
   const occupancyPercent = Math.round((room.occupiedCount / room.capacity) * 100);
 
+  const backHref = isFromDashboard ? "/" : "/archive";
+  const backLabel = isFromDashboard ? "← Back to dashboard" : "← Back to archive";
+
   return (
     <div className="space-y-6">
       <Link
-        href="/archive"
+        href={backHref}
         className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "mb-2 -ml-2 inline-flex")}
       >
-        ← Back to archive
+        {backLabel}
       </Link>
 
       <PageHeader

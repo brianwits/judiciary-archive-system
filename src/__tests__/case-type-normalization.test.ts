@@ -12,6 +12,10 @@ function makeCaseRow(overrides: Partial<CaseRow> = {}): CaseRow {
   return {
     id: "case-1",
     case_number: "CR/123/2025",
+    case_number_normalized: null,
+    case_number_raw: null,
+    case_family: null,
+    case_type_id: null,
     title: "State v. John Doe",
     court: "KBT",
     status: "open",
@@ -35,8 +39,13 @@ function makeCaseRow(overrides: Partial<CaseRow> = {}): CaseRow {
     created_by: null,
     created_at: "2025-01-15T08:00:00Z",
     updated_at: "2025-01-15T08:00:00Z",
+    source_case_id: null,
+    source_record_hash: null,
+    source_system: null,
+    source_updated_at: null,
+    tracking_number: null,
     ...overrides,
-  };
+  } as CaseRow;
 }
 
 function makeArchiveRow(overrides: Partial<ArchiveStoredCaseRpcRow> = {}): ArchiveStoredCaseRpcRow {
